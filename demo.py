@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import timm
 from utils import save_image_to_gridfs
 assert "0.4.5" <= timm.__version__ <= "0.4.9"  # version check
-from PIL import Image, ImageDraw
 
 from misc import make_grid
 import models_mae_cross
@@ -21,24 +20,7 @@ device = torch.device('cpu')
 """
 python demo.py
 """
-from sklearn.cluster import DBSCAN
 
-def apply_dbscan(points, eps=5, min_samples=1):
-    clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(points)
-    labels = clustering.labels_
-    
-    # Number of clusters in labels, ignoring noise if present.
-    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-    n_noise_ = list(labels).count(-1)
-
-    # Generate a list of cluster centers
-    cluster_centers = []
-    for k in range(n_clusters_):
-        class_member_mask = (labels == k)
-        xy = np.array(points)[class_member_mask]
-        cluster_centers.append(xy.mean(axis=0).tolist())
-
-    return cluster_centers, n_clusters_, n_noise_
 
 class measure_time(object):
     def __enter__(self):
@@ -48,21 +30,6 @@ class measure_time(object):
     def __exit__(self, typ, value, traceback):
         self.duration = (time.perf_counter_ns() - self.start) / 1e9
 
-def find_high_density_points(density_map, threshold=2.0):
-    points = []
-    height, width = density_map.shape
-    for y in range(height):
-        for x in range(width):
-            if density_map[y, x] > threshold:
-                points.append((x, y))
-    return points
-
-def overlay_points_on_image(image, points, color=(0, 255, 0), radius=2):
-    draw = ImageDraw.Draw(image)
-    for point in points:
-        x, y = point
-        draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=color, outline=color)
-    return image
 
 def plot_heatmap(density_map, count, buffer):
     # Make sure that this function now writes to a BytesIO buffer instead of saving to a file path
@@ -75,9 +42,13 @@ def plot_heatmap(density_map, count, buffer):
     plt.close()
 
 
-def load_image(filepath):
-    image = Image.open(filepath)
-    image.load()
+def load_image(file_id,fs):
+    # Open the image file
+    grid_out = fs.get(file_id)
+    # Use BytesIO to create a file-like object from the binary data
+    image_data = BytesIO(grid_out.read())
+    image_data.seek(0)  # Important: seek to the beginning of the file-like object
+    image = Image.open(image_data).convert('RGB')
     W, H = image.size
 
     # Resize the image size so that the height is 384
@@ -90,7 +61,6 @@ def load_image(filepath):
     image = Normalize(image)
 
     # Coordinates of the exemplar bound boxes
-    # The left upper corner and the right lower corner
     bboxes = [
         [[136, 98], [173, 127]],
         [[209, 125], [242, 150]],
@@ -226,20 +196,12 @@ def run_one_image(samples, boxes, pos, model,fs):
         else make_grid(r_densities, h, w).unsqueeze(0).repeat(3, 1, 1)
     fig = fig + box_map + pred / 2
     fig = torch.clamp(fig, 0, 1)
-   # Generate overlaid image with high-density points
-    
-    high_density_points = find_high_density_points(density_map.cpu().numpy(), threshold=1.0)
-    pred_cnt = len(high_density_points)  # Count is now the number of high-density points
-    original_image = TF.to_pil_image(samples.cpu().squeeze(0))
-    overlaid_image = overlay_points_on_image(original_image, high_density_points)
+    heatmap_buffer = BytesIO()
+    plot_heatmap(density_map, pred_cnt, heatmap_buffer)
+    heatmap_buffer.seek(0)
+    heatmap_file_id = fs.put(heatmap_buffer, filename='heatmap.png', content_type='image/png')
 
-    # Save or display the overlaid image
-    overlaid_image_buffer = BytesIO()
-    overlaid_image.save(overlaid_image_buffer, format='png')
-    overlaid_image_buffer.seek(0)
-    overlaid_image_file_id = fs.put(overlaid_image_buffer, filename='overlaid_image.png', content_type='image/png')
-
-    return pred_cnt, et.duration, str(overlaid_image_file_id)
+    return pred_cnt, et.duration, str(heatmap_file_id)  # Return heatmap path also
 
 
 # Prepare model
@@ -253,8 +215,8 @@ print("Resume checkpoint %s" % './checkpoint-400.pth')
 
 model.eval()
 
-def run_demo(filepath, fs):
-    samples, boxes, pos = load_image(filepath)
+def run_demo(file_id, fs):
+    samples, boxes, pos = load_image(file_id, fs)
     samples = samples.unsqueeze(0).to(device, non_blocking=True)
     boxes = boxes.unsqueeze(0).to(device, non_blocking=True)
 
