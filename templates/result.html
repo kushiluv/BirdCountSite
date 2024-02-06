@@ -1,15 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Result</title>
+    <!-- Bootstrap CSS CDN -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .result-container {
+            margin-top: 20px;
+        }
+        img {
+            max-width: 100%; /* Make image responsive */
+            height: auto;
+        }
+        .action-buttons {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Result</h1>
-    <p>Count: {{ count }}</p>
-    <p>Elapsed Time: {{ elapsed_time }} seconds</p>
-    <img src="{{ image_url }}" alt="Heatmap Image">
-    <br>
-    <a href="{{ url_for('upload_file') }}">Upload another image</a>
-    <a href="/annotate/{{ file_id }}">Annotate This Image</a>
+    <div class="container result-container">
+        <h1 class="mb-3">Result</h1>
+        <p class="lead">Count: {{ count }}</p>
+        <!-- <p class="lead">Elapsed Time: {{ elapsed_time }} seconds</p> -->
+        <div class="mb-3">
+            <img src="{{ image_url }}" alt="Heatmap Image" class="img-fluid">
+        </div>
+        <div class="action-buttons">
+            <a href="{{ url_for('upload_file') }}" class="btn btn-primary mb-2">Upload another image</a>
+            <p class="text-muted">Not satisfied with the result? Please help us improve the model by annotating the image.</p>
+            <a href="/annotate/{{ file_id }}" class="btn btn-secondary">Help Us Improve</a>
+        </div>
+    </div>
+    <!-- Bootstrap JS, Popper.js, and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

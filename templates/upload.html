@@ -1,13 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Upload an Image</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bird Count</title>
+    <!-- Bootstrap CSS CDN -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Optional: Include Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+        }
+        body {
+            background-image: url('assets/bg.png');
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+        .custom-file-upload {
+            cursor: pointer;
+            display: inline-block;
+            padding: 6px 12px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        .submit-button {
+            display: inline-block;
+            margin: 20px auto;
+            background-color: #007bff;
+            color: white;
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            transition: background-color 0.5s ease;
+        }
+        .submit-button:hover {
+            background-color: #0056b3;
+            cursor: pointer;
+        }
+        .file-name {
+            margin-top: 10px; /* Space above the file name display */
+        }
+    </style>
 </head>
 <body>
-    <h1>Upload an Image</h1>
-    <form method=post enctype=multipart/form-data>
-        <input type=file name=file>
-        <input type=submit value=Upload>
-    </form>
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">Bird Count</h1>
+        <form method="post" enctype="multipart/form-data" class="text-center">
+            <div class="form-group">
+                <label for="fileUpload" class="custom-file-upload">
+                    <i class="fas fa-cloud-upload-alt"></i> Choose file
+                </label>
+                <input type="file" class="form-control-file" id="fileUpload" name="file" style="display: none;" onchange="updateFileName()">
+                <span class="file-name" id="file-name"></span> <!-- Placeholder for file name -->
+            </div>
+            <button type="submit" class="submit-button">
+                <i class="fas fa-check"></i> Submit
+            </button>
+        </form>
+    </div>
+    <script>
+        function updateFileName() {
+            var fileInput = document.getElementById('fileUpload');
+            var fileNameDisplay = document.getElementById('file-name');
+            fileNameDisplay.textContent = fileInput.files.length > 0 ? fileInput.files[0].name : 'No file chosen';
+        }
+    </script>
+    <!-- Bootstrap JS, Popper.js, and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

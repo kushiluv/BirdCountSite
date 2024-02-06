@@ -34,9 +34,9 @@ class measure_time(object):
 def plot_heatmap(density_map, count, buffer):
     # Make sure that this function now writes to a BytesIO buffer instead of saving to a file path
     fig, ax = plt.subplots()
-    im = ax.imshow(density_map.cpu().numpy(), cmap='hot', interpolation='nearest')
-    ax.text(0, 0, f'Count: {count:.2f}', color='white', fontsize=12, va='top', ha='left', backgroundcolor='black')
-    plt.colorbar(im)
+    im = ax.imshow(density_map.cpu().numpy(), cmap='viridis')
+    # ax.text(0, 0, f'Count: {count:.2f}', color='white', fontsize=12, va='top', ha='left', backgroundcolor='black')
+    # plt.colorbar(im)
     fig.canvas.draw()  # This line draws the figure on the canvas so that it can be saved
     plt.savefig(buffer, format='png')
     plt.close()
@@ -200,7 +200,7 @@ def run_one_image(samples, boxes, pos, model,fs):
     plot_heatmap(density_map, pred_cnt, heatmap_buffer)
     heatmap_buffer.seek(0)
     heatmap_file_id = fs.put(heatmap_buffer, filename='heatmap.png', content_type='image/png')
-
+    pred_cnt = int(pred_cnt + 0.99)
     return pred_cnt, et.duration, str(heatmap_file_id)  # Return heatmap path also
 
 
@@ -219,7 +219,7 @@ def run_demo(file_id, fs):
     samples, boxes, pos = load_image(file_id, fs)
     samples = samples.unsqueeze(0).to(device, non_blocking=True)
     boxes = boxes.unsqueeze(0).to(device, non_blocking=True)
-
+    
     result, elapsed_time, heatmap_file_id = run_one_image(samples, boxes, pos, model, fs)
 
     return result, elapsed_time, heatmap_file_id

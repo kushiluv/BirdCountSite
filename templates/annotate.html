@@ -2,76 +2,119 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Annotate Image</title>
+    <!-- Bootstrap CSS CDN -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
+        .annotation-container {
+            position: relative; /* For absolute positioning of the instructions */
+        }
         #annotationCanvas {
-            border: 1px solid black;
+            max-width: 100%; /* Ensures canvas is not larger than its container */
+            height: auto; /* Maintain aspect ratio */
+            border: 2px dashed #007bff; /* Bootstrap primary color for border */
             cursor: crosshair;
+        }
+        .instructions-box {
+            position: absolute; /* Position the instructions box absolutely to the right */
+            top: 0; /* Align to the top of the container */
+            right: 0; /* Align to the right of the container */
+            width: 25%; /* Take up 25% of the container width */
+            border: 1px solid #dee2e6; /* Bootstrap's border color */
+            padding: 20px;
+            border-radius: 5px; /* Slightly rounded corners for the box */
+            background-color: #f8f9fa; /* Light background color */
+        }
+        @media (max-width: 768px) {
+            .instructions-box {
+                position: static; /* Static position for small screens */
+                width: 100%; /* Full width */
+                margin-top: 20px; /* Space between canvas and instructions */
+            }
         }
     </style>
 </head>
 <body>
-    <h2>Annotate Image</h2>
-    <canvas id="annotationCanvas"></canvas>
-    <button id="saveAnnotationsButton">Save Annotations</button>
-
+    <div class="container mt-5">
+        <h2 class="mb-3 text-center">Annotate Image</h2>
+        <div class="row annotation-container">
+            <div class="col-12 col-md-8">
+                <canvas id="annotationCanvas"></canvas>
+                <div class="mt-3">
+                    <button id="saveAnnotationsButton" class="btn btn-primary">Save Annotations</button>
+                </div>
+            </div>
+            <!-- Instructions box made to be absolutely positioned relative to its parent on larger screens -->
+            <div class="instructions-box">
+                <h4>How to Make Annotations</h4>
+                <p>Click on the center of birds or objects you wish to annotate. Each click will place a marker on the image. When you're done, click the "Save Annotations" button to submit your annotations.</p>
+            </div>
+        </div>
+    </div>
+    
     <script>
-      var fileId = "{{ file_id }}";
-        console.log('/save_annotations/' + fileId);
-        var canvas = document.getElementById('annotationCanvas');
-        var ctx = canvas.getContext('2d');
-        var annotations = []; // To store annotation points
-
-        var image = new Image();
-        image.onload = function() {
-            canvas.width = this.naturalWidth;
-            canvas.height = this.naturalHeight;
-            ctx.drawImage(image, 0, 0);
-        };
-        image.src = "{{ image_url }}"; // The URL of the image to annotate
-        document.getElementById('saveAnnotationsButton').addEventListener('click', function() {
-          var json = annotations.map(function(annotation, index) {
-              return {
-                  filename: image.src.split('/').pop(),
-                  file_size: image.width * image.height,
-                  file_attributes: "{}",
-                  region_count: annotations.length,
-                  region_id: index + 1, // Adjust to start from 1
-                  region_shape_attributes: JSON.stringify(annotation.region_shape_attributes),
-                  region_attributes: JSON.stringify(annotation.region_attributes)
-              };
-          });
-          var jsonString = JSON.stringify(json);
-
-          // Send JSON to the server using the fetch API
-          fetch('/save_annotations/' + fileId, { // Note: use the fileId variable here
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json'
-              },
-              body: jsonString
-          })
-          .then(response => {
-              if (!response.ok) {
-                  throw new Error('Network response was not ok');
-              }
-              return response.json();
-          })
-          .then(data => {
-              console.log('Success:', data);
-              // Redirect to the home page after successful save
-              window.location.href = '/';
-          })
-          .catch((error) => {
-              console.error('Error:', error);
-          });
-      });
-
-
+        var fileId = "{{ file_id }}";
+          console.log('/save_annotations/' + fileId);
+          var canvas = document.getElementById('annotationCanvas');
+          var ctx = canvas.getContext('2d');
+          var annotations = []; // To store annotation points
+  
+          var image = new Image();
+          image.onload = function() {
+              canvas.width = this.naturalWidth;
+              canvas.height = this.naturalHeight;
+              ctx.drawImage(image, 0, 0);
+          };
+          image.src = "{{ image_url }}"; // The URL of the image to annotate
+          document.getElementById('saveAnnotationsButton').addEventListener('click', function() {
+            var json = annotations.map(function(annotation, index) {
+                return {
+                    filename: image.src.split('/').pop(),
+                    file_size: image.width * image.height,
+                    file_attributes: "{}",
+                    region_count: annotations.length,
+                    region_id: index + 1, // Adjust to start from 1
+                    region_shape_attributes: JSON.stringify(annotation.region_shape_attributes),
+                    region_attributes: JSON.stringify(annotation.region_attributes)
+                };
+            });
+            var jsonString = JSON.stringify(json);
+  
+            // Send JSON to the server using the fetch API
+            fetch('/save_annotations/' + fileId, { // Note: use the fileId variable here
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: jsonString
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Success:', data);
+                // Redirect to the home page after successful save
+                window.location.href = '/';
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        });
+  
+  
         canvas.addEventListener('click', function(event) {
             var rect = canvas.getBoundingClientRect();
-            var x = event.clientX - rect.left;
-            var y = event.clientY - rect.top;
+            // Calculate the scaling factor
+            var scaleX = canvas.width / rect.width;
+            var scaleY = canvas.height / rect.height;
+            // Adjust the x and y coordinates
+            var x = (event.clientX - rect.left) * scaleX;
+            var y = (event.clientY - rect.top) * scaleY;
+
             var regionId = annotations.length + 1; // Start with 1
 
             annotations.push({
@@ -82,63 +125,67 @@
 
             drawMarker(x, y, regionId);
         });
-
-        function drawMarker(x, y, id) {
-    // Outer black border
-    ctx.beginPath();
-    ctx.arc(x, y, 3, 0, Math.PI * 2); // Smaller outer circle for black border
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 1; // Adjust the width for the outer black outline
-    ctx.stroke();
-    ctx.closePath();
-    
-   
-    
-    // Inner black border
-    ctx.beginPath();
-    ctx.arc(x, y, 2, 0, Math.PI * 2); // Smaller inner circle for black border inside
-    ctx.strokeStyle = 'yellow';
-    ctx.lineWidth = 1; // Adjust the width for the inner black outline
-    ctx.stroke();
-    ctx.closePath();
-
-    // Text background
-    var fontSize = 8;
-    ctx.font = fontSize + 'px Arial';
-    var textWidth = ctx.measureText(id).width;
-    var textHeight = fontSize * 0.6; // approximate height of text
-    ctx.fillStyle = 'black';
-    ctx.fillRect(x - textWidth / 2, y - fontSize - textHeight - 2, textWidth, textHeight); // Adjust y position for the background
-
-    // Text label (number)
-    ctx.fillStyle = 'yellow'; // Yellow font color
-    ctx.fillText(id, x - textWidth / 2, y - fontSize - 2); // Adjust y position to be higher
-}
-
-
-        document.getElementById('saveAnnotations').addEventListener('click', function() {
-            var json = annotations.map(function(annotation, index) {
-                return {
-                    filename: image.src.split('/').pop(),
-                    file_size: image.width * image.height, // This is not the file size in bytes
-                    file_attributes: "{}",
-                    region_count: annotations.length,
-                    region_id: index, // Adjust if region_id starts from 1
-                    region_shape_attributes: JSON.stringify(annotation.region_shape_attributes),
-                    region_attributes: JSON.stringify(annotation.region_attributes)
-                };
-            });
-            var jsonString = JSON.stringify(json);
-            console.log(jsonString); // For demonstration
-
-            // Send JSON to the server
-            sendAnnotationsToServer(jsonString);
-        });
-
-        function sendAnnotationsToServer(jsonString) {
-            // AJAX code to send the data to the server
-            // ...
-        }
-    </script>
+  
+          function drawMarker(x, y, id) {
+      // Outer black border
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2); // Smaller outer circle for black border
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 1; // Adjust the width for the outer black outline
+      ctx.stroke();
+      ctx.closePath();
+      
+     
+      
+      // Inner black border
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2); // Smaller inner circle for black border inside
+      ctx.strokeStyle = 'yellow';
+      ctx.lineWidth = 1; // Adjust the width for the inner black outline
+      ctx.stroke();
+      ctx.closePath();
+  
+      // Text background
+      var fontSize = 12;
+      ctx.font = fontSize + 'px Arial';
+      var textWidth = ctx.measureText(id).width;
+      var textHeight = fontSize * 0.6; // approximate height of text
+      ctx.fillStyle = 'black';
+      ctx.fillRect(x - textWidth / 2, y - fontSize - textHeight - 2, textWidth, textHeight); // Adjust y position for the background
+  
+      // Text label (number)
+      ctx.fillStyle = 'yellow'; // Yellow font color
+      ctx.fillText(id, x - textWidth / 2, y - fontSize - 2); // Adjust y position to be higher
+  }
+  
+  
+          document.getElementById('saveAnnotations').addEventListener('click', function() {
+              var json = annotations.map(function(annotation, index) {
+                  return {
+                      filename: image.src.split('/').pop(),
+                      file_size: image.width * image.height, // This is not the file size in bytes
+                      file_attributes: "{}",
+                      region_count: annotations.length,
+                      region_id: index, // Adjust if region_id starts from 1
+                      region_shape_attributes: JSON.stringify(annotation.region_shape_attributes),
+                      region_attributes: JSON.stringify(annotation.region_attributes)
+                  };
+              });
+              var jsonString = JSON.stringify(json);
+              console.log(jsonString); // For demonstration
+  
+              // Send JSON to the server
+              sendAnnotationsToServer(jsonString);
+          });
+  
+          function sendAnnotationsToServer(jsonString) {
+              // AJAX code to send the data to the server
+              // ...
+          }
+      </script>
+    <!-- Bootstrap JS, Popper.js, and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
