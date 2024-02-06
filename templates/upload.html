@@ -14,6 +14,7 @@
             margin: 0;
         }
         body {
+            /* Ensure you have 'assets/bg.png' in your project directory or adjust the path as necessary */
             background-image: url('assets/bg.png');
             background-position: center;
             background-repeat: no-repeat;
@@ -23,7 +24,6 @@
             cursor: pointer;
             display: inline-block;
             padding: 6px 12px;
-            cursor: pointer;
             margin-top: 5px;
         }
         .submit-button {
@@ -41,26 +41,64 @@
             cursor: pointer;
         }
         .file-name {
-            margin-top: 10px; /* Space above the file name display */
+            margin-top: 10px;
+        }
+        /* Navbar styling */
+        .navbar {
+            margin-bottom: 40px;
+        }
+        /* About us section styling */
+        .about-section {
+            padding: 40px 0;
+            color: #fff;
         }
     </style>
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">About Us</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Upload Form Section -->
     <div class="container mt-5">
-        <h1 class="mb-4 text-center">Bird Count</h1>
+        <!-- Removed the h1 heading here as it is now in the navbar -->
         <form method="post" enctype="multipart/form-data" class="text-center">
             <div class="form-group">
                 <label for="fileUpload" class="custom-file-upload">
                     <i class="fas fa-cloud-upload-alt"></i> Choose file
                 </label>
                 <input type="file" class="form-control-file" id="fileUpload" name="file" style="display: none;" onchange="updateFileName()">
-                <span class="file-name" id="file-name"></span> <!-- Placeholder for file name -->
+                <span class="file-name" id="file-name"></span>
             </div>
             <button type="submit" class="submit-button">
                 <i class="fas fa-check"></i> Submit
             </button>
         </form>
     </div>
+
+    <!-- About Us Section -->
+    <div class="about-section" id="about">
+        <div class="container">
+            <h2 class="text-center">About Us</h2>
+            <p class="text-center">We are passionate about avian conservation and provide tools for bird counting and tracking. Our goal is to help researchers and enthusiasts alike to better understand and protect bird populations.</p>
+        </div>
+    </div>
+
     <script>
         function updateFileName() {
             var fileInput = document.getElementById('fileUpload');

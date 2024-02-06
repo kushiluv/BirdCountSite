@@ -50,6 +50,7 @@ def annotate_image(file_id):
         return render_template('annotate.html', image_url=image_url, file_id=file_id)
     except gridfs.NoFile:
         abort(404)
+        
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
@@ -70,6 +71,7 @@ def upload_file():
             image_url = url_for('serve_pil_image', file_id=str(heatmap_file_id))
             return render_template('result.html', count=count, elapsed_time=elapsed_time, image_url=image_url, file_id=str(file_id))
     return render_template('upload.html')
+    
 @app.route('/image/<file_id>')
 def serve_pil_image(file_id):
     try:
