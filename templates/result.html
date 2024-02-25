@@ -7,6 +7,22 @@
     <!-- Bootstrap CSS CDN -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
+        
+        .image-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            overflow: hidden;
+        }
+        .image-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Cover the container without losing aspect ratio */
+        }
+
         .result-container {
             margin-top: 20px;
         }
@@ -40,9 +56,21 @@
     <div class="container result-container">
         <h1 class="mb-3">Result</h1>
         <p class="lead">Count: {{ count }}</p>
-        <!-- <p class="lead">Elapsed Time: {{ elapsed_time }} seconds</p> -->
-        <div class="mb-3">
-            <img src="{{ image_url }}" alt="Heatmap Image" class="img-fluid">
+        <div class="row">
+            <!-- Original Image Container -->
+            <div class="col-md-6">
+                <h5>Original Image</h5>
+                <div class="image-container">
+                    <img id="originalImage" src="{{ image_url }}" alt="Original Image">
+                </div>
+            </div>
+            <!-- Density Map Container -->
+            <div class="col-md-6">
+                <h5>Density Map</h5>
+                <div class="image-container">
+                    <img id="densityMap" src="{{ density_map_url }}" alt="Density Map">
+                </div>
+            </div>
         </div>
         <div class="action-buttons">
             <a href="{{ url_for('upload_file') }}" class="btn btn-primary mb-2">Upload another image</a>
@@ -54,5 +82,21 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var originalImage = document.getElementById('originalImage');
+            var densityMap = document.getElementById('densityMap');
+
+            originalImage.onload = function() {
+                console.log("Original Image Width:", this.width);
+                console.log("Original Image Height:", this.height);
+            };
+
+            densityMap.onload = function() {
+                console.log("Density Map Width:", this.width);
+                console.log("Density Map Height:", this.height);
+            };
+        });
+    </script>
 </body>
 </html>

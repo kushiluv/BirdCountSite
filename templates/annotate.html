@@ -7,32 +7,35 @@
     <!-- Bootstrap CSS CDN -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
+        
         .annotation-container {
-            position: relative; /* For absolute positioning of the instructions */
-        }
-        #annotationCanvas {
-            max-width: 100%; /* Ensures canvas is not larger than its container */
-            height: auto; /* Maintain aspect ratio */
-            border: 2px dashed #007bff; /* Bootstrap primary color for border */
-            cursor: crosshair;
-        }
+        position: relative;
+    }
+    #annotationCanvas {
+        max-width: 100%;
+        height: auto;
+        border: 2px dashed #007bff;
+        cursor: crosshair;
+    }
+    .instructions-box {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 25%;
+        max-width: 300px; /* Limiting maximum width for responsiveness */
+        margin-top: 20px; /* Adjusting top margin */
+        border: 1px solid #dee2e6;
+        padding: 20px;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+    }
+    @media (max-width: 768px) {
         .instructions-box {
-            position: absolute; /* Position the instructions box absolutely to the right */
-            top: 0; /* Align to the top of the container */
-            right: 0; /* Align to the right of the container */
-            width: 25%; /* Take up 25% of the container width */
-            border: 1px solid #dee2e6; /* Bootstrap's border color */
-            padding: 20px;
-            border-radius: 5px; /* Slightly rounded corners for the box */
-            background-color: #f8f9fa; /* Light background color */
+            position: static;
+            width: 100%;
+            margin-top: 20px;
         }
-        @media (max-width: 768px) {
-            .instructions-box {
-                position: static; /* Static position for small screens */
-                width: 100%; /* Full width */
-                margin-top: 20px; /* Space between canvas and instructions */
-            }
-        }
+    }
     </style>
 </head>
 <body>
@@ -55,6 +58,18 @@
     </nav>
     <div class="container mt-5">
         <h2 class="mb-3 text-center">Annotate Image</h2>
+        <div class="instructions-box">
+            <h4>Instructions</h4>
+            <p>
+                Adjust the slider to change the cluster density. Moving the slider to the right will decrease the number of points or pre-annotations shown on the image.
+            </p>
+            <p>
+                Click on a pre-annotation to mark it as incorrect. The annotation will turn red to indicate it is incorrect.
+            </p>
+            <p>
+                Click on an empty space on the image to create a new annotation. New annotations will be marked in green.
+            </p>
+        </div>
         <div class="row annotation-container">
             <div class="col-12 col-md-8">
                 <canvas id="annotationCanvas"></canvas>
@@ -63,143 +78,196 @@
                 </div>
             </div>
             <!-- Instructions box made to be absolutely positioned relative to its parent on larger screens -->
-            <div class="instructions-box">
-                <h4>How to Make Annotations</h4>
-                <p>Click on the center of birds or objects you wish to annotate. Each click will place a marker on the image. When you're done, click the "Save Annotations" button to submit your annotations.</p>
+            
+            <div class="slider-container" style="text-align: center; margin: 20px;">
+                <input type="range" min="0" max="9" value="0" class="slider" id="clusterSlider">
+                <p>Adjust Cluster Density: <span id="sliderValue">0</span></p>
             </div>
         </div>
     </div>
     
     <script>
         var fileId = "{{ file_id }}";
-          console.log('/save_annotations/' + fileId);
-          var canvas = document.getElementById('annotationCanvas');
-          var ctx = canvas.getContext('2d');
-          var annotations = []; // To store annotation points
-  
-          var image = new Image();
-          image.onload = function() {
-              canvas.width = this.naturalWidth;
-              canvas.height = this.naturalHeight;
-              ctx.drawImage(image, 0, 0);
-          };
-          image.src = "{{ image_url }}"; // The URL of the image to annotate
-          document.getElementById('saveAnnotationsButton').addEventListener('click', function() {
-            var json = annotations.map(function(annotation, index) {
+        var canvas = document.getElementById('annotationCanvas');
+        var ctx = canvas.getContext('2d');
+        var annotations = []; // Includes both pre-annotations and user annotations
+        var imageDimensions = {{ image_dimensions|tojson }};
+        var image = new Image();
+        image.onload = function() {
+            canvas.width = this.naturalWidth;
+            canvas.height = this.naturalHeight;
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+            var preAnnotations = {{ cluster_centers|tojson }};
+            preAnnotations.forEach(function(annotation, index) {
+                var scaleX = canvas.width / imageDimensions[1];
+                var scaleY = canvas.height / imageDimensions[0];
+                var displayX = annotation.x * scaleX;
+                var displayY = annotation.y * scaleY;
+                annotations.push({x: displayX, y: displayY, id: index + 1, type: 'pre', incorrect: false}); // Marking as pre-annotation
+                drawMarker(displayX, displayY, index + 1, 'yellow');
+            });
+        };
+        image.src = "{{ image_url }}";
+        document.getElementById('clusterSlider').oninput = function() {
+    var sliderValue = parseInt(document.getElementById('clusterSlider').value, 10);
+    document.getElementById('sliderValue').innerText = sliderValue;
+
+    fetch('/adjust_clusters', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ slider_value: sliderValue })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Received clusters:', data);
+        updateCanvasWithClusters(data);
+    })
+    .catch(error => console.error('Error adjusting clusters:', error));
+};
+
+function updateCanvasWithClusters(clusterCenters) {
+    if (Array.isArray(clusterCenters)) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear existing drawings
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height); // Redraw the image
+
+        // Recalculate scaling factors based on the current canvas size and original image dimensions
+        var scaleX = canvas.width / imageDimensions[1];
+        var scaleY = canvas.height / imageDimensions[0];
+
+        // Filter out existing pre-annotations from the annotations list
+        annotations = annotations.filter(annotation => annotation.type !== 'pre');
+
+        clusterCenters.forEach((center, index) => {
+            // Apply scaling to cluster center coordinates
+            var displayX = center.x * scaleX;
+            var displayY = center.y * scaleY;
+            annotations.push({x: displayX, y: displayY, id: index + 1, type: 'pre', incorrect: false}); // Marking as pre-annotation
+            drawMarker(displayX, displayY, index + 1, 'yellow');
+        });
+
+        // Redraw any new annotations that were not marked as incorrect
+        annotations.forEach(annotation => {
+            if (!annotation.incorrect && annotation.type !== 'pre') {
+                var color = annotation.type === 'pre' ? 'yellow' : '#00FF00';
+                drawMarker(annotation.x, annotation.y, annotation.id, color);
+            }
+        });
+    } else {
+        console.error('Received data is not an array:', clusterCenters);
+    }
+}
+        // Adjust the click event listener for marking pre-annotations as incorrect
+        canvas.addEventListener('click', function(event) {
+    var rect = canvas.getBoundingClientRect();
+    var scaleX = canvas.width / rect.width;
+    var scaleY = canvas.height / rect.height;
+    var x = (event.clientX - rect.left) * scaleX;
+    var y = (event.clientY - rect.top) * scaleY;
+
+    // Attempt to find a clicked annotation
+    var clickedAnnotation = isClickNearAnnotation(x, y);
+    if (clickedAnnotation) {
+        if (clickedAnnotation.type === 'pre') {
+            // Mark pre-annotation as incorrect
+            clickedAnnotation.incorrect = true;
+            // Redraw all annotations to reflect changes
+            redrawAnnotations();
+        }
+    } else {
+        // Add a new annotation if not clicked on an existing one
+        var regionId = annotations.length + 1;
+        annotations.push({
+            id: regionId,
+            x: x,
+            y: y,
+            type: 'new', // Marking this as a new annotation
+            incorrect: false
+        });
+        drawMarker(x, y, regionId, '#00FF00');
+    }
+});
+
+function redrawAnnotations() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    annotations.forEach(function(annotation) {
+        var color = annotation.incorrect ? 'red' : (annotation.type === 'pre' ? 'yellow' : '#00FF00');
+        drawMarker(annotation.x, annotation.y, annotation.id, color);
+    });
+}
+function isClickNearAnnotation(x, y) {
+    console.log(annotations)
+    const clickRadius = 20; // Adjust this value as needed to increase or decrease the sensitivity
+    console.log('Click coordinates:', x, y);
+    for (let annotation of annotations) {
+        console.log('Annotation coordinates:', annotation.x, annotation.y);
+        var distance = Math.sqrt(Math.pow(annotation.x - x, 2) + Math.pow(annotation.y - y, 2));
+        if (distance <= clickRadius) {
+            console.log('Clicked near annotation:', annotation);
+            return annotation;
+        }
+    }
+    console.log('No annotation clicked');
+    return null;
+}
+        function markAsIncorrect(annotation) {
+            annotation.incorrect = true;
+            drawMarker(annotation.x, annotation.y, annotation.id, 'red');
+        }
+    
+        function drawMarker(x, y, id, color) {
+            ctx.globalAlpha = 0.8; // Making the marker more transparent
+            ctx.beginPath();
+            ctx.arc(x, y, 3.5, 0, Math.PI * 2); // Making the marker smaller
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+            ctx.closePath();
+            ctx.globalAlpha = 1.0; // Resetting transparency for other drawings
+        }
+    
+        document.getElementById('saveAnnotationsButton').addEventListener('click', function() {
+            var validAnnotations = annotations.filter(function(ann) { return !ann.incorrect; });
+            var json = validAnnotations.map(function(annotation, index) {
                 return {
                     filename: image.src.split('/').pop(),
                     file_size: image.width * image.height,
                     file_attributes: "{}",
-                    region_count: annotations.length,
-                    region_id: index + 1, // Adjust to start from 1
-                    region_shape_attributes: JSON.stringify(annotation.region_shape_attributes),
-                    region_attributes: JSON.stringify(annotation.region_attributes)
+                    region_count: validAnnotations.length,
+                    region_id: index + 1,
+                    region_shape_attributes: JSON.stringify({ name: "point", cx: annotation.x, cy: annotation.y }),
+                    region_attributes: JSON.stringify({})
                 };
             });
             var jsonString = JSON.stringify(json);
-  
-            // Send JSON to the server using the fetch API
-            fetch('/save_annotations/' + fileId, { // Note: use the fileId variable here
+    
+            fetch('/save_annotations/' + fileId, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: jsonString
             })
-            .then(response => {
+            .then(function(response) {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
                 return response.json();
             })
-            .then(data => {
+            .then(function(data) {
                 console.log('Success:', data);
-                // Redirect to the home page after successful save
                 window.location.href = '/';
             })
-            .catch((error) => {
+            .catch(function(error) {
                 console.error('Error:', error);
             });
         });
-  
-  
-        canvas.addEventListener('click', function(event) {
-            var rect = canvas.getBoundingClientRect();
-            // Calculate the scaling factor
-            var scaleX = canvas.width / rect.width;
-            var scaleY = canvas.height / rect.height;
-            // Adjust the x and y coordinates
-            var x = (event.clientX - rect.left) * scaleX;
-            var y = (event.clientY - rect.top) * scaleY;
-
-            var regionId = annotations.length + 1; // Start with 1
-
-            annotations.push({
-                region_id: regionId,
-                region_shape_attributes: { name: "point", cx: x, cy: y },
-                region_attributes: {}
-            });
-
-            drawMarker(x, y, regionId);
-        });
-  
-          function drawMarker(x, y, id) {
-      // Outer black border
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2); // Smaller outer circle for black border
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = 1; // Adjust the width for the outer black outline
-      ctx.stroke();
-      ctx.closePath();
-      
-     
-      
-      // Inner black border
-      ctx.beginPath();
-      ctx.arc(x, y, 2, 0, Math.PI * 2); // Smaller inner circle for black border inside
-      ctx.strokeStyle = 'yellow';
-      ctx.lineWidth = 1; // Adjust the width for the inner black outline
-      ctx.stroke();
-      ctx.closePath();
-  
-      // Text background
-      var fontSize = 12;
-      ctx.font = fontSize + 'px Arial';
-      var textWidth = ctx.measureText(id).width;
-      var textHeight = fontSize * 0.6; // approximate height of text
-      ctx.fillStyle = 'black';
-      ctx.fillRect(x - textWidth / 2, y - fontSize - textHeight - 2, textWidth, textHeight); // Adjust y position for the background
-  
-      // Text label (number)
-      ctx.fillStyle = 'yellow'; // Yellow font color
-      ctx.fillText(id, x - textWidth / 2, y - fontSize - 2); // Adjust y position to be higher
-  }
-  
-  
-          document.getElementById('saveAnnotations').addEventListener('click', function() {
-              var json = annotations.map(function(annotation, index) {
-                  return {
-                      filename: image.src.split('/').pop(),
-                      file_size: image.width * image.height, // This is not the file size in bytes
-                      file_attributes: "{}",
-                      region_count: annotations.length,
-                      region_id: index, // Adjust if region_id starts from 1
-                      region_shape_attributes: JSON.stringify(annotation.region_shape_attributes),
-                      region_attributes: JSON.stringify(annotation.region_attributes)
-                  };
-              });
-              var jsonString = JSON.stringify(json);
-              console.log(jsonString); // For demonstration
-  
-              // Send JSON to the server
-              sendAnnotationsToServer(jsonString);
-          });
-  
-          function sendAnnotationsToServer(jsonString) {
-              // AJAX code to send the data to the server
-              // ...
-          }
-      </script>
+    </script>
     <!-- Bootstrap JS, Popper.js, and jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>

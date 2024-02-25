@@ -11,9 +11,11 @@ import matplotlib.pyplot as plt
 import timm
 from utils import save_image_to_gridfs
 assert "0.4.5" <= timm.__version__ <= "0.4.9"  # version check
-
+from sklearn.cluster import DBSCAN
+import numpy as np
 from misc import make_grid
 import models_mae_cross
+import matplotlib.cm as cm
 device = torch.device('cpu')
 
 
@@ -56,6 +58,9 @@ def load_image(file_id,fs):
     new_W = 16 * int((W / H * 384) / 16)
     scale_factor_H = float(new_H) / H
     scale_factor_W = float(new_W) / W
+    print(f"Original image size: {W}x{H}")
+    print(f"Processed image size: {new_W}x{new_H}")
+    print(f"Scaling factors: {scale_factor_W}, {scale_factor_H}")
     image = transforms.Resize((new_H, new_W))(image)
     Normalize = transforms.Compose([transforms.ToTensor()])
     image = Normalize(image)
@@ -84,9 +89,14 @@ def load_image(file_id,fs):
     return image, boxes, rects
 
 
-def run_one_image(samples, boxes, pos, model,fs):
+def run_one_image(samples, boxes, pos, model,fs, orig_image_size):
     _, _, h, w = samples.shape
+    orig_h, orig_w = orig_image_size
 
+    # Calculate the scaling factors
+    print("test : ",orig_h, orig_w, h, w)
+    scale_factor_H = orig_h / h
+    scale_factor_W = orig_w / w
     s_cnt = 0
     for rect in pos:
         if rect[2] - rect[0] < 10 and rect[3] - rect[1] < 10:
@@ -172,7 +182,37 @@ def run_one_image(samples, boxes, pos, model,fs):
 
             pred_cnt = torch.sum(density_map / 60).item()
 
+    # Normalize density_map for visualization
+    density_normalized = density_map / density_map.max()
+    
+    # Convert density map to RGBA image using a colormap
+    colormap = cm.get_cmap('jet')  # You can choose any available colormap
+    density_colormap = colormap(density_normalized.cpu().detach().numpy())
+    
+    # Convert RGBA image to RGB by ignoring the alpha channel
+    density_rgb = density_colormap[...,:3]
+    
+    # Convert to tensor
+    density_rgb_tensor = torch.from_numpy(density_rgb).float().permute(2, 0, 1)
+    
+    # Resize density_rgb_tensor to match the size of the original image
+    density_resized = TF.resize(density_rgb_tensor, samples.shape[2:])
 
+    # Blend the original image with the density map
+    # Adjust alpha to change the transparency of the overlay
+    alpha = 0.5
+    blended_image = (1 - alpha) * samples[0] + alpha * density_resized
+    
+    # Clamp the values to be between 0 and 1
+    blended_image_clamped = torch.clamp(blended_image, 0, 1)
+    
+    # Save or display the blended image
+    # Convert blended_image_clamped to PIL image to save or display
+    blended_image_pil = TF.to_pil_image(blended_image_clamped.cpu())
+    blended_image_buffer = BytesIO()
+    blended_image_pil.save(blended_image_buffer, format='PNG')
+    blended_image_buffer.seek(0)
+    blended_image_file_id = fs.put(blended_image_buffer, filename='blended_heatmap.png', content_type='image/png')
     e_cnt = 0
     for rect in pos:
         e_cnt += torch.sum(density_map[rect[0]:rect[2] + 1, rect[1]:rect[3] + 1] / 60).item()
@@ -201,7 +241,60 @@ def run_one_image(samples, boxes, pos, model,fs):
     heatmap_buffer.seek(0)
     heatmap_file_id = fs.put(heatmap_buffer, filename='heatmap.png', content_type='image/png')
     pred_cnt = int(pred_cnt + 0.99)
-    return pred_cnt, et.duration, str(heatmap_file_id)  # Return heatmap path also
+    # Thresholding the density map
+   
+    # Convert cluster centers to a format suitable for JSON serialization
+    # This will be useful for sending data to the frontend
+    
+     # Include cluster_centers_json in the return statement
+    return pred_cnt, et.duration, str(blended_image_file_id), density_map
+    
+    
+
+def compute_clusters_for_range(density_map, scale_factors):
+    cluster_centers_sets = []
+    # Define sets of parameters for thresholds, eps, and min_samples
+    parameters = [
+        {'threshold': 0.999, 'eps': 0.5, 'min_samples': 1},
+        {'threshold': 0.9, 'eps': 1, 'min_samples': 2},
+        {'threshold': 0.8, 'eps': 2, 'min_samples': 2},
+        {'threshold': 0.7, 'eps': 3, 'min_samples': 2},
+        {'threshold': 0.6, 'eps': 4, 'min_samples': 2},
+        {'threshold': 0.5, 'eps': 5, 'min_samples': 2},
+        {'threshold': 0.4, 'eps': 6, 'min_samples': 2},
+        {'threshold': 0.3, 'eps': 7, 'min_samples': 2},
+        {'threshold': 0.2, 'eps': 8, 'min_samples': 2},
+        {'threshold': 0.1, 'eps': 9, 'min_samples': 2},
+    ]
+    
+    for param in parameters:
+        binary_mask = threshold_density_map(density_map, param['threshold'])
+        cluster_centers = cluster_points(binary_mask, eps=param['eps'], min_samples=param['min_samples'])
+        # Adjust cluster centers based on scale_factors if necessary
+        adjusted_centers = [{'x': int(center[0] * scale_factors['W']), 'y': int(center[1] * scale_factors['H'])} for center in cluster_centers]
+        cluster_centers_sets.append(adjusted_centers)
+    
+    return cluster_centers_sets
+
+def threshold_density_map(density_map, threshold):
+    # Apply threshold
+    binary_mask = density_map > threshold
+    return binary_mask
+
+def cluster_points(binary_mask, eps, min_samples):
+    # Find coordinates of potential locations
+    y, x = np.where(binary_mask)
+    points = np.array(list(zip(x, y)))
+    
+    # Apply DBSCAN clustering
+    clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(points)
+    cluster_centers = []
+    for label in np.unique(clustering.labels_):
+        if label != -1:  # Ignore noise points
+            members = points[clustering.labels_ == label]
+            center = members.mean(axis=0)
+            cluster_centers.append(center)
+    return cluster_centers
 
 
 # Prepare model
@@ -219,7 +312,15 @@ def run_demo(file_id, fs):
     samples, boxes, pos = load_image(file_id, fs)
     samples = samples.unsqueeze(0).to(device, non_blocking=True)
     boxes = boxes.unsqueeze(0).to(device, non_blocking=True)
-    
-    result, elapsed_time, heatmap_file_id = run_one_image(samples, boxes, pos, model, fs)
+    orig_image_size = samples.shape[2:]  # Capture the original image size
 
-    return result, elapsed_time, heatmap_file_id
+    # Now, run_one_image returns the density_map as well
+    pred_cnt, elapsed_time, heatmap_file_id, density_map = run_one_image(samples, boxes, pos, model, fs, orig_image_size)
+
+    # Compute scale factors based on the original image size and the processed size
+    scale_factors = {'W': orig_image_size[1]/density_map.shape[1], 'H': orig_image_size[0]/density_map.shape[0]}
+
+    # Generate multiple sets of cluster centers
+    cluster_centers_sets = compute_clusters_for_range(density_map, scale_factors)
+
+    return pred_cnt, elapsed_time, heatmap_file_id, cluster_centers_sets, orig_image_size
