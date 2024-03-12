@@ -7,35 +7,45 @@
     <!-- Bootstrap CSS CDN -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
-        
         .annotation-container {
-        position: relative;
-    }
-    #annotationCanvas {
-        max-width: 100%;
-        height: auto;
-        border: 2px dashed #007bff;
-        cursor: crosshair;
-    }
-    .instructions-box {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 25%;
-        max-width: 300px; /* Limiting maximum width for responsiveness */
-        margin-top: 20px; /* Adjusting top margin */
-        border: 1px solid #dee2e6;
-        padding: 20px;
-        border-radius: 5px;
-        background-color: #f8f9fa;
-    }
-    @media (max-width: 768px) {
-        .instructions-box {
-            position: static;
-            width: 100%;
-            margin-top: 20px;
+            position: relative;
         }
-    }
+        #annotationCanvas {
+            max-width: 100%;
+            height: auto;
+            border: 2px dashed #007bff;
+            cursor: crosshair;
+        }
+        .instructions-box {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 25%;
+            max-width: 300px; /* Limiting maximum width for responsiveness */
+            margin-top: 20px; /* Adjusting top margin */
+            border: 1px solid #dee2e6;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        .slider-container {
+            text-align: center;
+            margin-top: 30px; /* Increased margin to prevent overlapping */
+        }
+        @media (max-width: 768px) {
+            .instructions-box {
+                position: static;
+                width: 100%;
+                margin-top: 20px;
+            }
+            .slider-container {
+                margin-top: 20px; /* Adjusting for smaller screens */
+            }
+        }
+        .highlight {
+            stroke: blue;
+            stroke-width: 2;
+        }
     </style>
 </head>
 <body>
@@ -64,7 +74,7 @@
                 Adjust the slider to change the cluster density. Moving the slider to the right will decrease the number of points or pre-annotations shown on the image.
             </p>
             <p>
-                Click on a pre-annotation to mark it as incorrect. The annotation will turn red to indicate it is incorrect.
+                Hover over a pre-annotation to highlight it. Click on a pre-annotation to mark it as incorrect; it will turn red.
             </p>
             <p>
                 Click on an empty space on the image to create a new annotation. New annotations will be marked in green.
@@ -77,9 +87,8 @@
                     <button id="saveAnnotationsButton" class="btn btn-primary">Save Annotations</button>
                 </div>
             </div>
-            <!-- Instructions box made to be absolutely positioned relative to its parent on larger screens -->
             
-            <div class="slider-container" style="text-align: center; margin: 20px;">
+            <div class="slider-container">
                 <input type="range" min="0" max="9" value="0" class="slider" id="clusterSlider">
                 <p>Adjust Cluster Density: <span id="sliderValue">0</span></p>
             </div>
@@ -189,6 +198,20 @@ function updateCanvasWithClusters(clusterCenters) {
         drawMarker(x, y, regionId, '#00FF00');
     }
 });
+canvas.addEventListener('mousemove', function(event) {
+            var rect = canvas.getBoundingClientRect();
+            var scaleX = canvas.width / rect.width;
+            var scaleY = canvas.height / rect.height;
+            var x = (event.clientX - rect.left) * scaleX;
+            var y = (event.clientY - rect.top) * scaleY;
+            var hoverAnnotation = isClickNearAnnotation(x, y);
+
+            redrawAnnotations(); // Redraw annotations to clear any previous highlights
+
+            if (hoverAnnotation && hoverAnnotation.type === 'pre') {
+                drawMarker(hoverAnnotation.x, hoverAnnotation.y, hoverAnnotation.id, 'yellow', true); // Add highlight effect
+            }
+        });
 
 function redrawAnnotations() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -218,17 +241,22 @@ function isClickNearAnnotation(x, y) {
             drawMarker(annotation.x, annotation.y, annotation.id, 'red');
         }
     
-        function drawMarker(x, y, id, color) {
-            ctx.globalAlpha = 0.8; // Making the marker more transparent
+        function drawMarker(x, y, id, color, highlight = false) {
+            ctx.globalAlpha = 0.8;
             ctx.beginPath();
-            ctx.arc(x, y, 3.5, 0, Math.PI * 2); // Making the marker smaller
+            ctx.arc(x, y, highlight ? 5 : 3.5, 0, Math.PI * 2); // Increase radius if highlighted
             ctx.fillStyle = color;
             ctx.fill();
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 0.5;
+            if (highlight) {
+                ctx.strokeStyle = 'blue'; // Highlight color
+                ctx.lineWidth = 2; // Highlight border width
+            } else {
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 0.5;
+            }
             ctx.stroke();
             ctx.closePath();
-            ctx.globalAlpha = 1.0; // Resetting transparency for other drawings
+            ctx.globalAlpha = 1.0;
         }
     
         document.getElementById('saveAnnotationsButton').addEventListener('click', function() {
