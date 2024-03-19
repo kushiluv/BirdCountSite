@@ -1,5 +1,8 @@
-from flask import Flask, request, redirect, url_for, render_template, jsonify , json, session    
+from flask import Flask, request, redirect, url_for, render_template, jsonify , json, session 
 import os
+from markupsafe import Markup
+from base64 import b64decode
+from flask import send_file
 from werkzeug.utils import secure_filename
 from bson.objectid import ObjectId
 from flask import make_response,abort
@@ -30,19 +33,29 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif','CR2'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
 @app.route('/save_annotations/<file_id>', methods=['POST'])
 def save_annotations(file_id):
     try:
-        data = request.json  # Get the annotations data from the request
+        # Get the annotations data from the form
+        annotations = json.loads(request.form.get('annotations'))
+        file_id = request.form.get('file_id')
+        
+        # Get the image file from the form
+        image = request.files.get('image')
+        if image:
+            # Save the image file to GridFS
+            image_id = fs.put(image.read(), content_type=image.content_type)
+        else:
+            image_id = None
+
         # Save the annotations data to MongoDB
         result = db.annotations.insert_one({
             'file_id': file_id,
-            'annotations': data
+            'image_id': image_id,  # Save the GridFS image ID here
+            'annotations': annotations
         })
-        print(result.inserted_id)
-        
-        return jsonify({'message': 'Annotations saved successfully'}), 200
+
+        return jsonify({'message': 'Annotations saved successfully', 'image_id': str(image_id)}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
@@ -135,7 +148,45 @@ def serve_pil_image(file_id):
         return response
     except gridfs.NoFile:
         abort(404)
+@app.route('/admin/review_annotations')
+def review_annotations():
+    # Fetch only the annotations that have not been approved yet
+    annotations_list = db.annotations.find({'approved': {'$ne': True}})
+    annotations = []
+    for annotation in annotations_list:
+        annotations.append({
+            '_id': str(annotation['_id']),
+            'file_id': annotation['file_id'],
+            'image_id': str(annotation.get('image_id', '')),
+            'annotations': annotation['annotations']
+        })
+    annotations_data = {'annotations': annotations}
+    return render_template('review_annotations.html', annotations_data=annotations_data)
 
 
+
+    return render_template('review_annotations.html', annotations_data=annotations_data)
+
+@app.route('/admin/approve_annotation/<annotation_id>')
+def approve_annotation(annotation_id):
+    try:
+        db.annotations.update_one({'_id': ObjectId(annotation_id)}, {'$set': {'approved': True}})
+        return jsonify({'message': 'Annotation approved successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/reject_annotation/<annotation_id>')
+def reject_annotation(annotation_id):
+    db.annotations.delete_one({'_id': ObjectId(annotation_id)})
+    return redirect(url_for('review_annotations'))
+@app.route('/annotated_image/<image_id>')
+def serve_annotated_image(image_id):
+    try:
+        grid_out = fs.get(ObjectId(image_id))
+        response = make_response(grid_out.read())
+        response.mimetype = grid_out.content_type
+        return response
+    except gridfs.NoFile:
+        abort(404)
 if __name__ == '__main__':
     app.run(debug=True)
