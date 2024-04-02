@@ -5,13 +5,10 @@
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
-  <title>Result</title>
+  <title>About</title>
   <meta content="" name="description">
   <meta content="" name="keywords">
 
-  <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,6 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600;1,700&family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Cardo:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
+  
   <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='vendor/swiper/swiper-bundle.min.css') }}" rel="stylesheet">
@@ -30,43 +28,6 @@
   <!-- Template Main CSS File -->
   <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
 
-
-
-  <!-- =======================================================
-  * Template Name: PhotoFolio
-  * Template URL: https://bootstrapmade.com/photofolio-bootstrap-photography-website-template/
-  * Updated: Mar 17 2024 with Bootstrap v5.3.3
-  * Author: BootstrapMade.com
-  * License: https://bootstrapmade.com/license/
-  ======================================================== -->
-  <style>
-        
-    .image-container {
-        position: relative;
-        width: 100%;
-        padding-top: 56.25%; /* 16:9 Aspect Ratio */
-        overflow: hidden;
-    }
-    .image-container img {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover; /* Cover the container without losing aspect ratio */
-    }
-
-    .result-container {
-        margin-top: 20px;
-    }
-    img {
-        max-width: 100%; /* Make image responsive */
-        height: auto;
-    }
-    .action-buttons {
-        margin-top: 20px;
-    }
-</style>
 </head>
 
 <body>
@@ -79,13 +40,13 @@
         <!-- Uncomment the line below if you also wish to use an image logo -->
         <!-- <img src="assets/img/logo.png" alt=""> -->
         <i class="bi bi-camera"></i>
-        <h1>PhotoFolio</h1>
+        <h1>BirdCount</h1>
       </a>
 
       <nav id="navbar" class="navbar">
         <ul>
-          <li><a href="{{ url_for('upload_file') }}" class="active">Home</a></li>
-            <li><a href="{{ url_for('about_file') }}"  >About</a></li>
+          <li><a href="{{ url_for('upload_file') }}" >Home</a></li>
+            <li><a href="{{ url_for('about_file') }}" class="active"  >About</a></li>
           <li><a href="{{ url_for('contact_file') }}">Contact</a></li>
         </ul>
       </nav><!-- .navbar -->
@@ -109,9 +70,9 @@
       <div class="container position-relative">
         <div class="row d-flex justify-content-center">
           <div class="col-lg-6 text-center">
-            <h2>Result</h2>
-        
-            <a class="cta-btn" href="">Count: {{ count }}</a>
+            <h2>About</h2>
+            <p>Bird Count is an initiative by Kushiluv and Abhinn, students at IIIT-Delhi, undertaken with the support of Prof. Pankaj Jalote and Prof. Saket Anand. Our project integrates the latest advancements in deep learning with ecological monitoring techniques. It's designed to address the challenges of manual bird counting in large flocks, a task that is both time-consuming and prone to inaccuracies. By developing an automated system, Bird Count aims to revolutionize how bird populations are studied and tracked, providing reliable data for ecological research and conservation policies.</p>
+           
 
           </div>
         </div>
@@ -121,61 +82,20 @@
     <!-- ======= About Section ======= -->
     <section id="about" class="about">
       <div class="container">
-        
+
         <div class="row gy-4 justify-content-center">
-          <div class="row">
-            <!-- Original Image Container -->
-            <div class="col-md-6">
-                <h5>Original Image</h5>
-                <div class="image-container">
-                    <img id="originalImage" src="{{ image_url }}" alt="Original Image">
-                </div>
-            </div>
-            <!-- Density Map Container -->
-            <div class="col-md-6">
-                <h5>Density Map</h5>
-                <div class="image-container">
-                    <img id="densityMap" src="{{ density_map_url }}" alt="Density Map">
-                </div>
-            </div>
-        </div>
-          <section id="services" class="services">
-           
-      
-                <div class="container">
-                  <div class="row gy-4 justify-content-center">
-                    <div class="col-xl-3 col-md-6 d-flex">
-                      <div class="service-item position-relative">
-                        <i class="bi bi-bounding-box-circles"></i>
-                        
-                        <h4><a href="{{ url_for('upload_file') }}" class="stretched-link">Upload another Image</a></h4>
-                        <p>Go back to home page to upload another image and get the results.</p>
-                      </div>
-                    </div><!-- End Service Item -->
-                
-                    <div class="col-xl-3 col-md-6 d-flex">
-                      <div class="service-item position-relative">
-                        <i class="bi bi-activity"></i>
-                        <h4><a href="/annotate/{{ file_id }}" class="stretched-link">Help us Improve</a></h4>
-                        <p>Not satisfied with the result? Please help us improve the model by annotating the image.</p>
-                      </div>
-                    </div><!-- End Service Item -->
-      
-            
-    
-      
-              </div>
-      
-            </div>
-          </section><!-- End Services Section -->
+          <div class="col-lg-6 content">
+            <h2 class="text-center">Our Objective and Your Participation</h2>
+            <p class="fst-italic py-3 text-justify">
+              Our primary goal with Bird Count is to offer a precise and user-friendly platform for accurately monitoring bird populations. By harnessing the power of deep learning, we seek to automate the counting process, thereby increasing efficiency for researchers and conservationists. This technology is designed to minimize errors and provide rapid, reliable data to support wildlife studies and habitat management. In pursuit of enhancing our model's accuracy, Bird Count invites users to actively participate by annotating images where the automated count may fall short. These user-generated annotations are crucial; they not only help in refining the algorithm but also ensure the system continuously learns and improves. By involving users in this feedback loop, we foster a community-driven approach to data collection, ultimately leading to more robust environmental research tools.
+            </p>
+          </div>
         </div>
 
       </div>
     </section><!-- End About Section -->
 
-    <!-- ======= Testimonials Section ======= -->
     
-
   </main><!-- End #main -->
 
   <!-- ======= Footer ======= -->
@@ -189,10 +109,11 @@
   </footer><!-- End Footer -->
 
   <a href="#" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
-  
+
   <div id="preloader">
     <div class="line"></div>
   </div>
+
 
   <!-- Vendor JS Files -->
   <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
@@ -204,25 +125,6 @@
 
   <!-- Template Main JS File -->
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
-    
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        var originalImage = document.getElementById('originalImage');
-        var densityMap = document.getElementById('densityMap');
-
-        originalImage.onload = function() {
-            console.log("Original Image Width:", this.width);
-            console.log("Original Image Height:", this.height);
-        };
-
-        densityMap.onload = function() {
-            console.log("Density Map Width:", this.width);
-            console.log("Density Map Height:", this.height);
-        };
-    });
-</script>
 
 </body>
 

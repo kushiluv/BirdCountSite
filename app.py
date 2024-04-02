@@ -73,6 +73,14 @@ def annotate_image(file_id):
     except gridfs.NoFile:
         abort(404)
 
+@app.route('/about')
+def about_file():
+    return render_template('about.html')
+
+@app.route('/contact')
+def contact_file():
+    return render_template('contact.html')
+
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
