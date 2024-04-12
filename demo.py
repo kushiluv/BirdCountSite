@@ -8,6 +8,8 @@ import torchvision
 from torchvision import transforms
 import torchvision.transforms.functional as TF
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 import timm
 from utils import save_image_to_gridfs
 assert "0.4.5" <= timm.__version__ <= "0.4.9"  # version check
@@ -285,7 +287,8 @@ def cluster_points(binary_mask, eps, min_samples):
     # Find coordinates of potential locations
     y, x = np.where(binary_mask)
     points = np.array(list(zip(x, y)))
-    
+    print(points)
+    print(x,y)
     # Apply DBSCAN clustering
     clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(points)
     cluster_centers = []

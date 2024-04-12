@@ -30,13 +30,7 @@
 
 
 
-  <!-- =======================================================
-  * Template Name: PhotoFolio
-  * Template URL: https://bootstrapmade.com/photofolio-bootstrap-photography-website-template/
-  * Updated: Mar 17 2024 with Bootstrap v5.3.3
-  * Author: BootstrapMade.com
-  * License: https://bootstrapmade.com/license/
-  ======================================================== -->
+
   <style>
    .slider {
   background-color: #27A776;
@@ -48,7 +42,7 @@
 
 #annotationCanvas {
   display: block; /* Removes the bottom margin/padding to fit container */
-  max-width: 100%;
+  max-width: 150%;
   height: auto; /* Maintain aspect ratio */
   border: 2px dashed #27A776;
 }
@@ -147,7 +141,8 @@
               
               <canvas id="annotationCanvas" style="border: 2px dashed #27A776; width: 100%; height: auto;"></canvas>
               <div class="text-center mt-3">
-                <button id="saveAnnotationsButton" type="button" class="btn btn-success">Save Annotations</button>
+                <button id="nextButton" type="button" class="btn btn-primary">Next</button>
+                <button id="saveAnnotationsButton" type="button" class="btn btn-success" style="display: none;">Save Annotations</button>
               </div>
             </div>
       
@@ -195,6 +190,11 @@
     var fileId = "{{ file_id }}";
     var canvas = document.getElementById('annotationCanvas');
     var ctx = canvas.getContext('2d');
+    var boxes = [];
+    var isDrawingBox = false;
+    var startPoint = { x: 0, y: 0 };
+    var currentBox = null;
+    var mode = "points"; // Could be "points" or "boxes"
     var annotations = []; // Includes both pre-annotations and user annotations
     var imageDimensions = {{ image_dimensions|tojson }};
     var image = new Image();
@@ -232,7 +232,59 @@ fetch('/adjust_clusters', {
 })
 .catch(error => console.error('Error adjusting clusters:', error));
 };
+document.getElementById('nextButton').addEventListener('click', function() {
+        mode = "boxes";
+        document.getElementById('nextButton').style.display = "none";
+        document.getElementById('saveAnnotationsButton').style.display = "inline-block";
+        alert("Please draw 3-4 bounding boxes.");
+    });
 
+    canvas.addEventListener('mousedown', function(event) {
+        if (mode !== "boxes") return;
+
+        var rect = canvas.getBoundingClientRect();
+        startPoint = {
+            x: (event.clientX - rect.left) * (image.width / rect.width),
+            y: (event.clientY - rect.top) * (image.height / rect.height)
+        };
+        isDrawingBox = true;
+        currentBox = { x: startPoint.x, y: startPoint.y, width: 0, height: 0 };
+    });
+
+    canvas.addEventListener('mousemove', function(event) {
+        if (!isDrawingBox || mode !== "boxes") return;
+
+        var rect = canvas.getBoundingClientRect();
+        var currentPoint = {
+            x: (event.clientX - rect.left) * (image.width / rect.width),
+            y: (event.clientY - rect.top) * (image.height / rect.height)
+        };
+
+        // Draw the dynamic box
+        currentBox.width = currentPoint.x - startPoint.x;
+        currentBox.height = currentPoint.y - startPoint.y;
+
+        // Redraw everything for a dynamic effect
+        redrawCanvas();
+        drawBox(currentBox.x, currentBox.y, currentBox.width, currentBox.height); // Now uses correct scaling
+    });
+
+    canvas.addEventListener('mouseup', function() {
+        if (!isDrawingBox || mode !== "boxes") return;
+        
+        boxes.push(currentBox);
+        isDrawingBox = false;
+        currentBox = null;
+        redrawCanvas(); // Ensure final box is drawn
+    });
+    function redrawCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        boxes.forEach(function(box) {
+            drawBox(box.x, box.y, box.width, box.height);
+        });
+        // Re-draw annotations if needed
+    }
 function updateCanvasWithClusters(clusterCenters) {
 if (Array.isArray(clusterCenters)) {
     ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear existing drawings
@@ -266,33 +318,36 @@ if (Array.isArray(clusterCenters)) {
 }
     // Adjust the click event listener for marking pre-annotations as incorrect
     canvas.addEventListener('click', function(event) {
-var rect = canvas.getBoundingClientRect();
-var scaleX = canvas.width / rect.width;
-var scaleY = canvas.height / rect.height;
-var x = (event.clientX - rect.left) * scaleX;
-var y = (event.clientY - rect.top) * scaleY;
+    // Check if mode is 'points' to allow point annotation
+    if (mode === "points") {
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / rect.width;
+        var scaleY = canvas.height / rect.height;
+        var x = (event.clientX - rect.left) * scaleX;
+        var y = (event.clientY - rect.top) * scaleY;
 
-// Attempt to find a clicked annotation
-var clickedAnnotation = isClickNearAnnotation(x, y);
-if (clickedAnnotation) {
-    if (clickedAnnotation.type === 'pre') {
-        // Mark pre-annotation as incorrect
-        clickedAnnotation.incorrect = true;
-        // Redraw all annotations to reflect changes
-        redrawAnnotations();
+        // Attempt to find a clicked annotation
+        var clickedAnnotation = isClickNearAnnotation(x, y);
+        if (clickedAnnotation) {
+            if (clickedAnnotation.type === 'pre') {
+                // Mark pre-annotation as incorrect
+                clickedAnnotation.incorrect = true;
+                // Redraw all annotations to reflect changes
+                redrawAnnotations();
+            }
+        } else {
+            // Add a new annotation if not clicked on an existing one
+            var regionId = annotations.length + 1;
+            annotations.push({
+                id: regionId,
+                x: x,
+                y: y,
+                type: 'new', // Marking this as a new annotation
+                incorrect: false
+            });
+            drawMarker(x, y, regionId, '#00FF00');
+        }
     }
-} else {
-    // Add a new annotation if not clicked on an existing one
-    var regionId = annotations.length + 1;
-    annotations.push({
-        id: regionId,
-        x: x,
-        y: y,
-        type: 'new', // Marking this as a new annotation
-        incorrect: false
-    });
-    drawMarker(x, y, regionId, '#00FF00');
-}
 });
 canvas.addEventListener('mousemove', function(event) {
         var rect = canvas.getBoundingClientRect();
@@ -316,7 +371,17 @@ annotations.forEach(function(annotation) {
     var color = annotation.incorrect ? 'red' : (annotation.type === 'pre' ? 'yellow' : '#00FF00');
     drawMarker(annotation.x, annotation.y, annotation.id, color);
 });
+boxes.forEach(function(box) {
+            drawBox(box.x, box.y, box.width, box.height);
+        });
 }
+function drawBox(x, y, width, height) {
+        ctx.beginPath();
+        ctx.rect(x, y, width, height);
+        ctx.strokeStyle = 'blue';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
 function isClickNearAnnotation(x, y) {
 console.log(annotations)
 const clickRadius = 20; // Adjust this value as needed to increase or decrease the sensitivity
@@ -356,7 +421,8 @@ return null;
     }
 
     document.getElementById('saveAnnotationsButton').addEventListener('click', function() {
-        var validAnnotations = annotations.filter(function(ann) { return !ann.incorrect; });
+        
+      var validAnnotations = annotations.filter(function(ann) { return !ann.incorrect; });
         var json = validAnnotations.map(function(annotation) {
             return {
                 region_shape_attributes: JSON.stringify({ name: "point", cx: annotation.x, cy: annotation.y })
@@ -371,6 +437,7 @@ return null;
         formData.append('annotations', JSON.stringify(json));
         formData.append('file_id', fileId);
         formData.append('image', blob);
+        formData.append('boxes', JSON.stringify(boxes));
 
         fetch('/save_annotations/' + fileId, {
             method: 'POST',

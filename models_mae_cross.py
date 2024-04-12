@@ -2,7 +2,8 @@ import time
 from functools import partial
 import math
 import random
-
+import matplotlib
+matplotlib.use('Agg')
 import numpy as np
 
 import torch

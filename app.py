@@ -13,6 +13,8 @@ import gridfs
 from io import BytesIO
 from PIL import Image
 from flask_session import Session
+import matplotlib
+matplotlib.use('Agg')
 # MongoDB connection string
 uri = "mongodb+srv://kushiluv:kushiluv25@cluster0.pety1ki.mongodb.net/"
 
@@ -28,7 +30,11 @@ app.config["SESSION_TYPE"] = "filesystem"  # Or another server-side storage
 Session(app)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif','CR2'}
-
+@app.route('/run_temp_script')
+def run_temp_script():
+    print("insideeeeeee")
+    print("Running the script...")
+    return jsonify({'message': 'The script has been executed successfully!'})
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -36,10 +42,34 @@ def allowed_file(filename):
 @app.route('/save_annotations/<file_id>', methods=['POST'])
 def save_annotations(file_id):
     try:
-        # Get the annotations data from the form
         annotations = json.loads(request.form.get('annotations'))
-        file_id = request.form.get('file_id')
+        bbox_data = json.loads(request.form.get('boxes'))
         
+        # Convert bbox data to corner coordinates
+        box_examples_coordinates = []
+        for bbox in bbox_data:
+            x = bbox['x']
+            y = bbox['y']
+            width = bbox['width']
+            height = bbox['height']
+
+            # Handle negative width or height
+            if width < 0:
+                x += width  # Move x to the left
+                width = -width  # Make width positive
+            if height < 0:
+                y += height  # Move y up
+                height = -height  # Make height positive
+
+            # Calculate corners
+            top_left = [x, y]
+            top_right = [x + width, y]
+            bottom_left = [x, y + height]
+            bottom_right = [x + width, y + height]
+            
+            # Append as a list of four coordinates
+            box_examples_coordinates.append([top_left, top_right, bottom_right, bottom_left])
+
         # Get the image file from the form
         image = request.files.get('image')
         if image:
@@ -48,11 +78,13 @@ def save_annotations(file_id):
         else:
             image_id = None
 
-        # Save the annotations data to MongoDB
+        # Save the annotations and bbox to MongoDB
         result = db.annotations.insert_one({
             'file_id': file_id,
             'image_id': image_id,  # Save the GridFS image ID here
-            'annotations': annotations
+            'annotations': annotations,
+            'bbox': box_examples_coordinates,
+            'Approved': False
         })
 
         return jsonify({'message': 'Annotations saved successfully', 'image_id': str(image_id)}), 200
