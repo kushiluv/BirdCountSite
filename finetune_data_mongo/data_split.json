@@ -1,0 +1,22 @@
+{
+    "test": [
+        "7.png"
+    ],
+    "test_coco": [
+        "9.png"
+    ],
+    "val": [
+        "4.png"
+    ],
+    "val_coco": [
+        "3.png"
+    ],
+    "train": [
+        "5.png",
+        "2.png",
+        "10.png",
+        "1.png",
+        "8.png",
+        "6.png"
+    ]
+}

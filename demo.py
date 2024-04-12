@@ -19,7 +19,8 @@ from misc import make_grid
 import models_mae_cross
 import matplotlib.cm as cm
 device = torch.device('cpu')
-
+import warnings  
+warnings.filterwarnings('ignore')
 
 """
 python demo.py
@@ -307,7 +308,7 @@ model_without_ddp = model
 
 checkpoint = torch.load('./checkpoint-400.pth', map_location='cpu')
 model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
-print("Resume checkpoint %s" % './checkpoint-400.pth')
+# print("Resume checkpoint %s" % './checkpoint-400.pth')
 
 model.eval()
 
