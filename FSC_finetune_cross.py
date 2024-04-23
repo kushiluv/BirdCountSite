@@ -14,6 +14,7 @@ import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.data import Dataset
 import torchvision
+import eval
 # import wandb
 import timm
 from tqdm import tqdm
@@ -26,6 +27,8 @@ from util.misc import NativeScalerWithGradNormCount as NativeScaler
 import util.lr_sched as lr_sched
 from util.FSC147 import transform_train, transform_val
 import models_mae_cross
+
+finetune_cnt = 0
 
 def get_args():
     args = argparse.Namespace()
@@ -449,20 +452,13 @@ def main(args):
             # wandb.log(log, step=idx)
 
         # save train status and model
-        if args.output_dir and (epoch % save_freq == 0 or epoch + 1 == args.epochs) and epoch != 0:
+        # if args.output_dir and (epoch % save_freq == 0 or epoch + 1 == args.epochs) and epoch != 0:
+        if args.output_dir and (epoch + 1 == args.epochs) and epoch != 0:
+            global finetune_cnt
             misc.save_model(
                 args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
-                loss_scaler=loss_scaler, epoch=epoch, suffix=f"finetuning_{epoch}", upload=epoch % 100 == 0)
-        elif True:
-            misc.save_model(
-                args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
-                loss_scaler=loss_scaler, epoch=epoch, suffix=f"finetuning_last", upload=False)
-        if args.output_dir and val_mae / len(data_loader_val) < min_MAE:
-            min_MAE = val_mae / len(data_loader_val)
-            misc.save_model(
-                args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
-                loss_scaler=loss_scaler, epoch=epoch, suffix="finetuning_minMAE")
-
+                loss_scaler=loss_scaler, epoch=epoch, suffix=f"finetuning_{epoch}_{finetune_cnt}", upload=epoch % 100 == 0)
+        
         print(f'[Train Epoch #{epoch}] - MAE: {train_mae.item() / len(data_loader_train):5.2f}, RMSE: {(train_mse.item() / len(data_loader_train)) ** 0.5:5.2f}', flush=True)
         print(f'[Val Epoch #{epoch}] - MAE: {val_mae.item() / len(data_loader_val):5.2f}, RMSE: {(val_mse.item() / len(data_loader_val)) ** 0.5:5.2f}, NAE: {val_nae.item() / len(data_loader_val):5.2f}', flush=True)
 
@@ -474,7 +470,9 @@ def main(args):
     #     if wandb_run is not None:
             # wandb.run.finish()
 
-def run_finetune():
+def run_finetune(finetune_count):
+    global finetune_cnt
+    finetune_cnt = finetune_count
     args = get_args()
     # Ensure output directory exists
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
@@ -487,3 +485,24 @@ def run_finetune():
     
 
     main(args)
+    path_file = f"finetune-pth/checkpoint__finetuning_{args.epochs-1}_{finetune_count}.pth"
+    if os.path.exists(path_file):
+        MAE = eval.mae_evaluation(path_file)
+        path = "parameters.json"
+        data = {"path_file": f"checkpoint__finetuning_{args.epochs-1}_{finetune_count}.pth", "MAE": MAE}
+        if os.path.exists(path):
+            with open(path, "r+") as file:
+                # Load existing data into a dictionary
+                file_data = json.load(file)
+                # Update the dictionary with new data
+                file_data.update(data)
+                # Set file's current position at the beginning
+                file.seek(0)
+                # Convert back to json and write in the file
+                json.dump(file_data, file, indent=4)
+        else:
+            with open(path, "w") as file:
+                # Write new data directly into a new file
+                json.dump(data, file, indent=4)
+
+

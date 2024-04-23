@@ -29,7 +29,7 @@ from random import shuffle
 import warnings  
 import shutil
 warnings.filterwarnings('ignore')
-
+finetune_count = 0
 # MongoDB connection string
 uri = "mongodb+srv://kushiluv:kushiluv25@cluster0.pety1ki.mongodb.net/"
 
@@ -190,8 +190,9 @@ def run_temp_script():
         json.dump(splits, outfile, indent=4)
 
     print("Data has been split and saved.")
-
-    FSC_finetune_cross.run_finetune()
+    global finetune_count
+    FSC_finetune_cross.run_finetune(finetune_count)
+    finetune_count += 1
 
     return jsonify({'message': 'The script has been executed successfully!'})
 
