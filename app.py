@@ -45,6 +45,38 @@ app.config["SESSION_TYPE"] = "filesystem"  # Or another server-side storage
 Session(app)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif','CR2'}
+from flask import jsonify
+import os
+import json
+
+@app.route('/get_checkpoint_data')
+def get_checkpoint_data():
+    # Path to the directory where checkpoint files are stored
+    checkpoint_directory = "finetune_pth"
+    checkpoint_files = os.listdir(checkpoint_directory)
+    print(checkpoint_files)
+    # Path to the parameters.json file
+    parameters_path =("./parameters.json")
+    
+    # Load the MAE and other data
+    if os.path.exists(parameters_path):
+        with open(parameters_path, 'r') as file:
+            parameters = json.load(file)
+            
+    else:
+        parameters = {}
+    print(parameters)
+    # Prepare data to send to the frontend
+    data = {
+        "parameters": parameters,
+        "checkpoints": [
+            {"name": f, "path": os.path.join(checkpoint_directory, f)}
+            for f in checkpoint_files if f.endswith(".pth")
+        ]
+    }
+
+    return jsonify(data)
+
 @app.route('/run_temp_script')
 def run_temp_script():  
 
@@ -272,6 +304,15 @@ def about_file():
 @app.route('/contact')
 def contact_file():
     return render_template('contact.html')
+
+@app.route('/load_model', methods=['POST'])
+def load_new_model():
+    checkpoint_path = request.json['checkpoint']
+    print(checkpoint_path)
+    global model, model_without_ddp
+    model = demo.load_model(checkpoint_path)  # Load the new model
+    model_without_ddp = model  # Update the global variable if necessary
+    return jsonify({'message': 'Model loaded successfully'})
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():

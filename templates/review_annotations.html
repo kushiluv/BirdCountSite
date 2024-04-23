@@ -40,6 +40,16 @@
                 </thead>
                 <tbody>
                     <button class="btn btn-warning btn-sm run-script-btn">FineTune the model</button>
+                    <div id="checkpoint-info">
+                        <h3>Available Checkpoints</h3>
+                        <select id="checkpoint-select">
+                            <!-- Checkpoints will be loaded here -->
+                        </select>
+                        <button onclick="loadModel()">Load Model</button>
+                        <div id="model-info">
+                            <!-- Model info like MAE will be displayed here -->
+                        </div>
+                    </div>
                     {% for annotation in annotations_data.annotations %}
                     <tr data-file-id="{{ annotation.file_id }}" data-image-id="{{ annotation.image_id }}" data-annotations="{{ annotation.annotations|tojson|safe }}">
                         <th scope="row">{{ loop.index }}</th>
@@ -140,6 +150,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // });
         
         document.addEventListener('DOMContentLoaded', function() {
+            fetchCheckpoints();
+
+    document.getElementById('checkpoint-select').addEventListener('change', function() {
+        updateModelInfo(this.value);
+    });
     document.querySelectorAll('.run-script-btn').forEach(button => {
         button.addEventListener('click', function() {
             // Using fetch to make the request to the Flask backend
@@ -160,6 +175,53 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+function fetchCheckpoints() {
+    fetch('/get_checkpoint_data')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('checkpoint-select');
+            data.checkpoints.forEach(cp => {
+                const option = document.createElement('option');
+                option.value = cp.path;
+                option.textContent = cp.name;
+                select.appendChild(option);
+            });
+            updateModelInfo(select.value);
+        })
+        .catch(error => console.error('Error loading checkpoints:', error));
+}
+
+function updateModelInfo(checkpointPath) {
+    fetch('/get_checkpoint_data')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('model-info').textContent = 'MAE: ' + data.parameters.MAE;
+        })
+        .catch(error => console.error('Error loading model info:', error));
+}
+
+function loadModel() {
+    const selectedCheckpoint = document.getElementById('checkpoint-select').value;
+    console.log('Loading model from:', selectedCheckpoint);
+
+    // Send a POST request to the Flask server to update the model
+    fetch('/load_model', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({checkpoint: selectedCheckpoint})
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data.message); // Success message
+        // Optionally, update UI or alert the user
+    })
+    .catch(error => {
+        console.error('Error loading model:', error);
+    });
+}
+
 
     </script>
 </body>

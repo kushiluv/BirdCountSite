@@ -48,7 +48,7 @@ def get_args():
     args.warmup_epochs = 10
     args.do_aug = False
     args.seed = 0
-    args.num_workers = 10
+    args.num_workers = 1
     args.pin_mem = True
     args.world_size = 1
     args.local_rank = -1

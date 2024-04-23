@@ -20,6 +20,7 @@ import models_mae_cross
 import matplotlib.cm as cm
 device = torch.device('cpu')
 import warnings  
+global model, model_without_ddp
 warnings.filterwarnings('ignore')
 
 """
@@ -46,6 +47,15 @@ def plot_heatmap(density_map, count, buffer):
     plt.savefig(buffer, format='png')
     plt.close()
 
+def load_model(checkpoint_path):
+    global model, model_without_ddp
+    model = models_mae_cross.__dict__['mae_vit_base_patch16'](norm_pix_loss='store_true')
+    checkpoint = torch.load(checkpoint_path, map_location='cpu')
+    model.load_state_dict(checkpoint['model'], strict=False)
+    model.eval()
+    model_without_ddp = model
+    print("Loaded the new model" , checkpoint_path)
+    return model
 
 def load_image(file_id,fs):
     # Open the image file
@@ -312,7 +322,9 @@ model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
 
 model.eval()
 
-def run_demo(file_id, fs):
+def run_demo(file_id, fs ,checkpoint_path=None):
+    if not checkpoint_path:
+        checkpoint_path = './default_checkpoint.pth'  # default path
     samples, boxes, pos = load_image(file_id, fs)
     samples = samples.unsqueeze(0).to(device, non_blocking=True)
     boxes = boxes.unsqueeze(0).to(device, non_blocking=True)
