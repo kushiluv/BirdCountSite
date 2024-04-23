@@ -60,7 +60,7 @@ def get_args():
     args.data_split_file = "finetune_data_mongo/data_split.json"
     args.im_dir = 'finetune_data_mongo/Images'
     # args.gt_dir = 'C:/Users/abhin/OneDrive/Desktop/ft/finetune/data/Birds_Dataset/GT'
-    args.output_dir = 'finetune-pth'
+    args.output_dir = 'finetune_pth'
     args.resume = 'checkpoint-400.pth'  # Or the appropriate checkpoint file
 
     # Logging and device
@@ -485,7 +485,7 @@ def run_finetune(finetune_count):
     
 
     main(args)
-    path_file = f"finetune-pth/checkpoint__finetuning_{args.epochs-1}_{finetune_count}.pth"
+    path_file = f"finetune_pth/checkpoint__finetuning_{args.epochs-1}_{finetune_count}.pth"
     if os.path.exists(path_file):
         MAE = eval.mae_evaluation(path_file)
         path = "parameters.json"

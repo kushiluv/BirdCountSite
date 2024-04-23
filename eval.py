@@ -90,8 +90,8 @@ def run_one_image(samples, boxes, model,  img_name, old_w, old_h):
 
 def mae_evaluation(model_path):
 
-    images_dir = "finetune_db/Images"
-    gt_dir = "finetune_db/GT"
+    images_dir = "eval_db/Images"
+    gt_dir = "eval_db/GT"
 
     image_filenames = [os.path.splitext(f)[0] for f in os.listdir(images_dir) if f.endswith('.jpg') or f.endswith('.png')]
     
