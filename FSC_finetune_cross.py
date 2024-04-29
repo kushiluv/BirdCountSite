@@ -61,7 +61,7 @@ def get_args():
     args.im_dir = 'finetune_data_mongo/Images'
     # args.gt_dir = 'C:/Users/abhin/OneDrive/Desktop/ft/finetune/data/Birds_Dataset/GT'
     args.output_dir = 'finetune_pth'
-    args.resume = 'checkpoint-400.pth'  # Or the appropriate checkpoint file
+    args.resume = 'finetune_pth/orignal.pth'  # Or the appropriate checkpoint file
 
     # Logging and device
     args.log_dir = './logs/pre_4_dir'
@@ -470,39 +470,42 @@ def main(args):
     #     if wandb_run is not None:
             # wandb.run.finish()
 
-def run_finetune(finetune_count):
+def run_finetune():
     global finetune_cnt
-    finetune_cnt = finetune_count
     args = get_args()
-    # Ensure output directory exists
+
+    # Ensure output directory and parameter file exists
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    path = "parameters.json"
     
+    # Initialize or load the finetune count and parameters file
+    if os.path.exists(path):
+        with open(path) as file:
+            data = json.load(file)
+            finetune_cnt = len(data) + 1
+    else:
+        data = []
+        finetune_cnt = 1
+
     # Load annotations and data split configurations
     with open(args.anno_file) as f:
         annotations = json.load(f)
     with open(args.data_split_file) as f:
         data_split = json.load(f)
     
-
+    # Run main processing function
     main(args)
-    path_file = f"finetune_pth/checkpoint__finetuning_{args.epochs-1}_{finetune_count}.pth"
+
+    path_file = f"finetune_pth/checkpoint__finetuning_{args.epochs-1}_{finetune_cnt}.pth"
     if os.path.exists(path_file):
         MAE = eval.mae_evaluation(path_file)
-        path = "parameters.json"
-        data = {"path_file": f"checkpoint__finetuning_{args.epochs-1}_{finetune_count}.pth", "MAE": MAE}
-        if os.path.exists(path):
-            with open(path, "r+") as file:
-                # Load existing data into a dictionary
-                file_data = json.load(file)
-                # Update the dictionary with new data
-                file_data.update(data)
-                # Set file's current position at the beginning
-                file.seek(0)
-                # Convert back to json and write in the file
-                json.dump(file_data, file, indent=4)
-        else:
-            with open(path, "w") as file:
-                # Write new data directly into a new file
-                json.dump(data, file, indent=4)
+        new_data = {"path_file": f"checkpoint__finetuning_{args.epochs-1}_{finetune_cnt}.pth", "MAE": MAE}
+        
+        # Append new data to the existing list (or new list if file didn't exist)
+        data.append(new_data)
+        
+        # Write updated data back to file
+        with open(path, "w") as file:
+            json.dump(data, file, indent=4)
 
 

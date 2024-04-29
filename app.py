@@ -29,7 +29,7 @@ from random import shuffle
 import warnings  
 import shutil
 warnings.filterwarnings('ignore')
-finetune_count = 0
+
 # MongoDB connection string
 uri = "mongodb+srv://kushiluv:kushiluv25@cluster0.pety1ki.mongodb.net/"
 
@@ -56,25 +56,23 @@ def get_checkpoint_data():
     checkpoint_files = os.listdir(checkpoint_directory)
     print(checkpoint_files)
     # Path to the parameters.json file
-    parameters_path =("./parameters.json")
+    parameters_path = "./parameters.json"
     
     # Load the MAE and other data
     if os.path.exists(parameters_path):
         with open(parameters_path, 'r') as file:
             parameters = json.load(file)
-            
     else:
-        parameters = {}
-    print(parameters)
+        parameters = []
+
     # Prepare data to send to the frontend
     data = {
-        "parameters": parameters,
         "checkpoints": [
-            {"name": f, "path": os.path.join(checkpoint_directory, f)}
+            {"name": os.path.splitext(f)[0], "path": os.path.join(checkpoint_directory, f), "MAE": next((p['MAE'] for p in parameters if p['path_file'] == f), None)}
             for f in checkpoint_files if f.endswith(".pth")
         ]
     }
-
+    print(data)
     return jsonify(data)
 
 @app.route('/run_temp_script')
@@ -222,9 +220,7 @@ def run_temp_script():
         json.dump(splits, outfile, indent=4)
 
     print("Data has been split and saved.")
-    global finetune_count
-    FSC_finetune_cross.run_finetune(finetune_count)
-    finetune_count += 1
+    FSC_finetune_cross.run_finetune()
 
     return jsonify({'message': 'The script has been executed successfully!'})
 

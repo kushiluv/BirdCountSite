@@ -152,9 +152,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('DOMContentLoaded', function() {
             fetchCheckpoints();
 
-    document.getElementById('checkpoint-select').addEventListener('change', function() {
-        updateModelInfo(this.value);
-    });
+        document.getElementById('checkpoint-select').addEventListener('change', function() {
+            updateModelInfo(this.value); // Pass the selected checkpoint path to the function
+        }); 
     document.querySelectorAll('.run-script-btn').forEach(button => {
         button.addEventListener('click', function() {
             // Using fetch to make the request to the Flask backend
@@ -180,22 +180,35 @@ function fetchCheckpoints() {
         .then(response => response.json())
         .then(data => {
             const select = document.getElementById('checkpoint-select');
+            // Clear previous options
+            select.innerHTML = '';
             data.checkpoints.forEach(cp => {
                 const option = document.createElement('option');
-                option.value = cp.path;
-                option.textContent = cp.name;
+                option.value = cp.path; // set value to be the path for consistency with updateModelInfo function
+                option.textContent = cp.name ; // Display MAE next to the name
                 select.appendChild(option);
             });
-            updateModelInfo(select.value);
+            if (select.options.length > 0) {
+                updateModelInfo(select.options[select.selectedIndex].value); // Update for the first time
+            }
         })
         .catch(error => console.error('Error loading checkpoints:', error));
 }
+
 
 function updateModelInfo(checkpointPath) {
     fetch('/get_checkpoint_data')
         .then(response => response.json())
         .then(data => {
-            document.getElementById('model-info').textContent = 'MAE: ' + data.parameters.MAE;
+            // Find the checkpoint that matches the given checkpointPath
+            const checkpoint = data.checkpoints.find(cp => cp.path === checkpointPath);
+            if (checkpoint && checkpoint.MAE) {
+                // Update the text content with the MAE of the found checkpoint
+                document.getElementById('model-info').textContent = 'MAE: ' + checkpoint.MAE;
+            } else {
+                // If not found or MAE is not set, clear the model-info
+                document.getElementById('model-info').textContent = 'MAE not available';
+            }
         })
         .catch(error => console.error('Error loading model info:', error));
 }
