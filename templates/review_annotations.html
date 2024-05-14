@@ -6,6 +6,24 @@
     <title>Review Annotations</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
+        
+    .navbar ul {
+      display: flex;
+      align-items: center;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .navbar ul li {
+      margin: 0 15px;
+    }
+
+    .navbar ul li img {
+      height: 40px; /* Adjust as necessary */
+      width: auto;
+    }
+
         .table td, .table th {
             word-break: break-word; /* Allows long words to be able to break and wrap onto the next line */
             vertical-align: middle; /* Aligns content in the middle vertically */
@@ -27,6 +45,14 @@
     </style>
 </head>
 <body>
+    <nav id="navbar" class="navbar">
+        <ul>
+          <li><a href="{{ url_for('upload_file') }}" class="active">Home</a></li>
+            <li><a href="{{ url_for('about_file') }}"  >About</a></li>
+          <li><a href="{{ url_for('contact_file') }}">Contact</a></li>
+          <li><a href="#"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo"></a></li>
+        </ul>
+      </nav><!-- .navbar -->
     <div class="container mt-5">
         <h2>Review Annotations</h2>
         <div class="table-responsive">

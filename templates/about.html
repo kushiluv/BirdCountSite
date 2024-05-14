@@ -27,7 +27,24 @@
 
   <!-- Template Main CSS File -->
   <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+  <style>
+    .navbar ul {
+      display: flex;
+      align-items: center;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
 
+    .navbar ul li {
+      margin: 0 15px;
+    }
+
+    .navbar ul li img {
+      height: 40px; /* Adjust as necessary */
+      width: auto;
+    }
+  </style>
 </head>
 
 <body>
@@ -48,6 +65,8 @@
           <li><a href="{{ url_for('upload_file') }}" >Home</a></li>
             <li><a href="{{ url_for('about_file') }}" class="active"  >About</a></li>
           <li><a href="{{ url_for('contact_file') }}">Contact</a></li>
+          
+          <li><a href="#"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo"></a></li>
         </ul>
       </nav><!-- .navbar -->
 

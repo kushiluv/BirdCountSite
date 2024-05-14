@@ -426,4 +426,4 @@ def serve_annotated_image(image_id):
     except gridfs.NoFile:
         abort(404)
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
