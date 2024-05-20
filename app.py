@@ -102,7 +102,7 @@ def run_temp_script():
         bbox = entry.get("bbox", [])
         # Ensuring the filename is unique by appending the ObjectId
         object_id = str(entry["_id"])
-        image_url = f"http://127.0.0.1:5000/image/{file_id}"
+        image_url = f"http://127.0.0.1:8080/image/{file_id}"
         image_filename = os.path.join(storage_dir, f"{file_id}_{object_id}.png")
 
         try:
@@ -426,4 +426,4 @@ def serve_annotated_image(image_id):
     except gridfs.NoFile:
         abort(404)
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=8080)
