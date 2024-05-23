@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Annotations</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        
+    .navbar ul {
+      display: flex;
+      align-items: center;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .navbar ul li {
+      margin: 0 15px;
+    }
+
+    .navbar ul li img {
+      height: 40px; /* Adjust as necessary */
+      width: auto;
+    }
+
+        .table td, .table th {
+            word-break: break-word; /* Allows long words to be able to break and wrap onto the next line */
+            vertical-align: middle; /* Aligns content in the middle vertically */
+        }
+        .action-buttons {
+            white-space: nowrap; /* Keeps the buttons from wrapping */
+        }
+        .modal-img {
+            max-width: 100%;
+            height: auto;
+        }
+        /* Hide the overflow content and add ellipsis */
+        .truncate {
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <nav id="navbar" class="navbar">
+        <ul>
+          <li><a href="{{ url_for('upload_file') }}" class="active">Home</a></li>
+            <li><a href="{{ url_for('about_file') }}"  >About</a></li>
+          <li><a href="{{ url_for('contact_file') }}">Contact</a></li>
+          <li><a href="https://iiitd.ac.in/"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo"></a></li>
+        </ul>
+      </nav><!-- .navbar -->
+    <div class="container mt-5">
+        <h2>Review Annotations</h2>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">File ID</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <button class="btn btn-warning btn-sm run-script-btn">FineTune the model</button>
+                    <div id="checkpoint-info">
+                        <h3>Available Checkpoints</h3>
+                        <select id="checkpoint-select">
+                            <!-- Checkpoints will be loaded here -->
+                        </select>
+                        <button onclick="loadModel()">Load Model</button>
+                        <div id="model-info">
+                            <!-- Model info like MAE will be displayed here -->
+                        </div>
+                    </div>
+                    {% for annotation in annotations_data.annotations %}
+                    <tr data-file-id="{{ annotation.file_id }}" data-image-id="{{ annotation.image_id }}" data-annotations="{{ annotation.annotations|tojson|safe }}">
+                        <th scope="row">{{ loop.index }}</th>
+                        <td class="truncate">{{ annotation.file_id }}</td>
+                        <td class="action-buttons">
+                            <button class="btn btn-primary btn-sm view-btn" onclick="showImageModal('{{ annotation.image_id }}')">View</button>
+                            <a href="#" onclick="approveAnnotation('{{ annotation._id }}', this)" class="btn btn-success btn-sm">Approve</a>
+                            <a href="{{ url_for('reject_annotation', annotation_id=annotation._id) }}" class="btn btn-danger btn-sm">Reject</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Image Modal Structure -->
+    <!-- Image Modal Structure -->
+    <div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">Annotated Image</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <img id="annotatedImage" class="modal-img" src="" alt="Annotated Image">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('tr[data-file-id]').forEach(function(row) {
+        var annotations = row.getAttribute('data-annotations');
+        
+    });
+});
+function approveAnnotation(annotationId, element) {
+    $.ajax({
+        url: '/admin/approve_annotation/' + annotationId,
+        type: 'GET',
+        success: function(response) {
+            // If successfully approved, remove the row from the table
+            $(element).closest('tr').remove();
+        },
+        error: function(error) {
+            console.error('Error approving annotation:', error);
+        }
+    });
+}
+
+     
+
+        // Function to show the modal with the image and annotations
+        function showImageModal(fileId) {
+            var image = document.getElementById('annotatedImage');
+            console.log(fileId);
+            // Assuming that you have saved the annotated image with a filename in the database
+            // and you have a route that can serve the image when given the filename.
+            image.src = '/image/' + fileId; // Update with the correct endpoint if needed
+            $('#imageModal').modal('show');
+        }
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.view-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            var row = this.closest('tr');
+            var fileId = row.getAttribute('data-file-id');
+            if (!fileId || fileId === 'null') {
+                console.error('Invalid file ID');
+                return;
+            }
+            // Pass the fileId to the modal display function
+            
+        });
+    });
+});
+
+   
+
+        // This script is a workaround to safely pass the annotations data to the function
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     var rows = document.querySelectorAll('tr[data-file-id]');
+        //     rows.forEach(function(row) {
+        //         row.addEventListener('click', function() {
+        //             var fileId = this.getAttribute('data-file-id');
+        //             var annotations = JSON.parse(this.getAttribute('data-annotations'));
+        //             showImageModal(fileId, annotations);
+        //         });
+        //     });
+        // });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchCheckpoints();
+
+        document.getElementById('checkpoint-select').addEventListener('change', function() {
+            updateModelInfo(this.value); // Pass the selected checkpoint path to the function
+        }); 
+    document.querySelectorAll('.run-script-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Using fetch to make the request to the Flask backend
+            fetch('/run_finetune_script')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert(data.message);
+                })
+                .catch(error => {
+                    console.error('Error running script:', error);
+                    alert('Failed to run script!');
+                });
+        });
+    });
+});
+function fetchCheckpoints() {
+    fetch('/get_checkpoint_data')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('checkpoint-select');
+            // Clear previous options
+            select.innerHTML = '';
+            data.checkpoints.forEach(cp => {
+                const option = document.createElement('option');
+                option.value = cp.path; // set value to be the path for consistency with updateModelInfo function
+                option.textContent = cp.name ; // Display MAE next to the name
+                select.appendChild(option);
+            });
+            if (select.options.length > 0) {
+                updateModelInfo(select.options[select.selectedIndex].value); // Update for the first time
+            }
+        })
+        .catch(error => console.error('Error loading checkpoints:', error));
+}
+
+
+function updateModelInfo(checkpointPath) {
+    fetch('/get_checkpoint_data')
+        .then(response => response.json())
+        .then(data => {
+            // Find the checkpoint that matches the given checkpointPath
+            const checkpoint = data.checkpoints.find(cp => cp.path === checkpointPath);
+            if (checkpoint && checkpoint.MAE) {
+                // Update the text content with the MAE of the found checkpoint
+                document.getElementById('model-info').textContent = 'MAE: ' + checkpoint.MAE;
+            } else {
+                // If not found or MAE is not set, clear the model-info
+                document.getElementById('model-info').textContent = 'MAE not available';
+            }
+        })
+        .catch(error => console.error('Error loading model info:', error));
+}
+
+function loadModel() {
+    const selectedCheckpoint = document.getElementById('checkpoint-select').value;
+    console.log('Loading model from:', selectedCheckpoint);
+
+    // Send a POST request to the Flask server to update the model
+    fetch('/load_model', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({checkpoint: selectedCheckpoint})
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data.message); // Success message
+        // Optionally, update UI or alert the user
+    })
+    .catch(error => {
+        console.error('Error loading model:', error);
+    });
+}
+
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
+  <title>Annotate</title>
+  <meta content="" name="description">
+  <meta content="" name="keywords">
+
+
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600;1,700&family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Cardo:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/swiper/swiper-bundle.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/glightbox/css/glightbox.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/aos/aos.css') }}" rel="stylesheet">
+
+
+
+  <!-- Template Main CSS File -->
+  <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+
+
+
+
+  <style>
+    
+    .navbar ul {
+      display: flex;
+      align-items: center;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .navbar ul li {
+      margin: 0 15px;
+    }
+
+    .navbar ul li img {
+      height: 40px; /* Adjust as necessary */
+      width: auto;
+    }
+  
+   .slider {
+  background-color: #27A776;
+}
+
+.slider::-webkit-slider-thumb {
+  background: #27A776;
+}
+
+#annotationCanvas {
+  display: block; /* Removes the bottom margin/padding to fit container */
+  max-width: 150%;
+  height: auto; /* Maintain aspect ratio */
+  border: 2px dashed #27A776;
+}
+
+
+
+.instructions-box {
+  margin-top: 15px;
+  
+  border: 1px solid #27A776;
+  border-radius: 0.25rem;
+  padding: 1rem;
+}
+
+@media (max-width: 768px) {
+  /* Stack the canvas and instructions on smaller screens */
+  #annotationCanvas,
+  .instructions-box {
+    width: 100%;
+  }
+  .instructions-box {
+    padding: 0.5rem;
+  }
+ 
+}
+
+/* Ensures text doesn't overlap the canvas */
+.instructions-box p,
+.instructions-box ul {
+  font-size: 0.9rem; /* Adjust font size as needed */
+  line-height: 1.4; /* Adjust line height for better readability */
+}
+
+</style>
+</head>
+
+<body>
+
+  <!-- ======= Header ======= -->
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container-fluid d-flex align-items-center justify-content-between">
+
+      <a href="{{ url_for('upload_file') }}" class="logo d-flex align-items-center  me-auto me-lg-0">
+        <!-- Uncomment the line below if you also wish to use an image logo -->
+        <!-- <img src="assets/img/logo.png" alt=""> -->
+        <i class="bi bi-camera"></i>
+        <h1>BirdCount</h1>
+      </a>
+
+      <nav id="navbar" class="navbar">
+        <ul>
+          <li><a href="{{ url_for('upload_file') }}" class="active">Home</a></li>
+            <li><a href="{{ url_for('about_file') }}"  >About</a></li>
+          <li><a href="{{ url_for('contact_file') }}">Contact</a></li>
+          <li><a href="https://iiitd.ac.in/"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo"></a></li>
+        </ul>
+      </nav><!-- .navbar -->
+
+      <!-- <div class="header-social-links">
+        <a href="#" class="twitter"><i class="bi bi-twitter"></i></a>
+        <a href="#" class="facebook"><i class="bi bi-facebook"></i></a>
+        <a href="#" class="instagram"><i class="bi bi-instagram"></i></a>
+        <a href="#" class="linkedin"><i class="bi bi-linkedin"></i></i></a>
+      </div> -->
+      <i class="mobile-nav-toggle mobile-nav-show bi bi-list"></i>
+      <i class="mobile-nav-toggle mobile-nav-hide d-none bi bi-x"></i>
+
+    </div>
+  </header><!-- End Header -->
+
+  <main id="main" data-aos="fade" data-aos-delay="1500">
+
+    <!-- ======= End Page Header ======= -->
+    <div class="page-header d-flex align-items-center">
+      <div class="container position-relative">
+        <div class="row d-flex justify-content-center">
+          <div class="col-lg-6 text-center">
+            <h2>Annotate Image</h2>
+        
+            <div class="slider-container">
+                <input type="range" min="0" max="9" value="0" class="slider" id="clusterSlider">
+                <p>Adjust Cluster Density: <span id="sliderValue">0</span></p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div><!-- End Page Header -->
+
+    <!-- ======= About Section ======= -->
+    <section id="about" class="about">
+        <div class="container">
+          <div class="row gy-4 justify-content-center">
+            
+            <!-- Annotation Canvas Column -->
+            <div class="col-md-7" style="padding: 0;">
+              
+              <canvas id="annotationCanvas" style="border: 2px dashed #27A776; width: 100%; height: auto;"></canvas>
+              <div class="text-center mt-3">
+                <button id="nextButton" type="button" class="btn btn-primary">Next</button>
+                <button id="saveAnnotationsButton" type="button" class="btn btn-success" style="display: none;">Save Annotations</button>
+              </div>
+            </div>
+      
+            <!-- Instructions Column -->
+            <div class="col-md-5">
+              <div class="content">
+                <h2>Annotation Instructions</h2>
+                <div class="instructions-box" style="padding: 20px; border: 1px solid #27A776;">
+                  <ul>
+                    <li><i class="bi bi-chevron-right"></i> Adjust the slider to change the cluster density. Moving the slider to the right will decrease the number of points or pre-annotations shown on the image.</li>
+                    <li><i class="bi bi-chevron-right"></i> Hover over a pre-annotation to highlight it. Click on a pre-annotation to mark it as incorrect; it will turn red.</li>
+                    <li><i class="bi bi-chevron-right"></i> Click on an empty space on the image to create a new annotation. New annotations will be marked in green.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+
+    <!-- ======= Testimonials Section ======= -->
+    
+
+  </main><!-- End #main -->
+
+   <!-- ======= Footer ======= -->
+   <footer id="footer" class="footer">
+    <div class="container">
+      
+      <div class="credits">
+        Designed by <a href="">Abhinn & Kushiluv</a>
+      </div>
+    </div>
+  </footer><!-- End Footer -->
+
+  <a href="#" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+  
+  <div id="preloader">
+    <div class="line"></div>
+  </div>
+
+  <!-- Vendor JS Files -->
+  <script>
+    var fileId = "{{ file_id }}";
+    var canvas = document.getElementById('annotationCanvas');
+    var ctx = canvas.getContext('2d');
+    var boxes = [];
+    var isDrawingBox = false;
+    var startPoint = { x: 0, y: 0 };
+    var currentBox = null;
+    var mode = "points"; // Could be "points" or "boxes"
+    var annotations = []; // Includes both pre-annotations and user annotations
+    var imageDimensions = {{ image_dimensions|tojson }};
+    var image = new Image();
+    image.onload = function() {
+        canvas.width = this.naturalWidth;
+        canvas.height = this.naturalHeight;
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        var preAnnotations = {{ cluster_centers|tojson }};
+        preAnnotations.forEach(function(annotation, index) {
+            var scaleX = canvas.width / imageDimensions[1];
+            var scaleY = canvas.height / imageDimensions[0];
+            var displayX = annotation.x * scaleX;
+            var displayY = annotation.y * scaleY;
+            annotations.push({x: displayX, y: displayY, id: index + 1, type: 'pre', incorrect: false}); // Marking as pre-annotation
+            drawMarker(displayX, displayY, index + 1, 'yellow');
+        });
+    };
+    image.src = "{{ image_url }}";
+    document.getElementById('clusterSlider').oninput = function() {
+var sliderValue = parseInt(document.getElementById('clusterSlider').value, 10);
+document.getElementById('sliderValue').innerText = sliderValue;
+
+fetch('/adjust_clusters', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ slider_value: sliderValue })
+})
+.then(response => response.json())
+.then(data => {
+    console.log('Received clusters:', data);
+    updateCanvasWithClusters(data);
+})
+.catch(error => console.error('Error adjusting clusters:', error));
+};
+document.getElementById('nextButton').addEventListener('click', function() {
+        mode = "boxes";
+        document.getElementById('nextButton').style.display = "none";
+        document.getElementById('saveAnnotationsButton').style.display = "inline-block";
+        alert("Please draw 3-4 bounding boxes.");
+    });
+
+    canvas.addEventListener('mousedown', function(event) {
+        if (mode !== "boxes") return;
+
+        var rect = canvas.getBoundingClientRect();
+        startPoint = {
+            x: (event.clientX - rect.left) * (image.width / rect.width),
+            y: (event.clientY - rect.top) * (image.height / rect.height)
+        };
+        isDrawingBox = true;
+        currentBox = { x: startPoint.x, y: startPoint.y, width: 0, height: 0 };
+    });
+
+    canvas.addEventListener('mousemove', function(event) {
+        if (!isDrawingBox || mode !== "boxes") return;
+
+        var rect = canvas.getBoundingClientRect();
+        var currentPoint = {
+            x: (event.clientX - rect.left) * (image.width / rect.width),
+            y: (event.clientY - rect.top) * (image.height / rect.height)
+        };
+
+        // Draw the dynamic box
+        currentBox.width = currentPoint.x - startPoint.x;
+        currentBox.height = currentPoint.y - startPoint.y;
+
+        // Redraw everything for a dynamic effect
+        redrawCanvas();
+        drawBox(currentBox.x, currentBox.y, currentBox.width, currentBox.height); // Now uses correct scaling
+    });
+
+    canvas.addEventListener('mouseup', function() {
+        if (!isDrawingBox || mode !== "boxes") return;
+        
+        boxes.push(currentBox);
+        isDrawingBox = false;
+        currentBox = null;
+        redrawCanvas(); // Ensure final box is drawn
+    });
+    function redrawCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        boxes.forEach(function(box) {
+            drawBox(box.x, box.y, box.width, box.height);
+        });
+        // Re-draw annotations if needed
+    }
+function updateCanvasWithClusters(clusterCenters) {
+if (Array.isArray(clusterCenters)) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear existing drawings
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height); // Redraw the image
+
+    // Recalculate scaling factors based on the current canvas size and original image dimensions
+    var scaleX = canvas.width / imageDimensions[1];
+    var scaleY = canvas.height / imageDimensions[0];
+
+    // Filter out existing pre-annotations from the annotations list
+    annotations = annotations.filter(annotation => annotation.type !== 'pre');
+
+    clusterCenters.forEach((center, index) => {
+        // Apply scaling to cluster center coordinates
+        var displayX = center.x * scaleX;
+        var displayY = center.y * scaleY;
+        annotations.push({x: displayX, y: displayY, id: index + 1, type: 'pre', incorrect: false}); // Marking as pre-annotation
+        drawMarker(displayX, displayY, index + 1, 'yellow');
+    });
+
+    // Redraw any new annotations that were not marked as incorrect
+    annotations.forEach(annotation => {
+        if (!annotation.incorrect && annotation.type !== 'pre') {
+            var color = annotation.type === 'pre' ? 'yellow' : '#00FF00';
+            drawMarker(annotation.x, annotation.y, annotation.id, color);
+        }
+    });
+} else {
+    console.error('Received data is not an array:', clusterCenters);
+}
+}
+    // Adjust the click event listener for marking pre-annotations as incorrect
+    canvas.addEventListener('click', function(event) {
+    // Check if mode is 'points' to allow point annotation
+    if (mode === "points") {
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / rect.width;
+        var scaleY = canvas.height / rect.height;
+        var x = (event.clientX - rect.left) * scaleX;
+        var y = (event.clientY - rect.top) * scaleY;
+
+        // Attempt to find a clicked annotation
+        var clickedAnnotation = isClickNearAnnotation(x, y);
+        if (clickedAnnotation) {
+            if (clickedAnnotation.type === 'pre') {
+                // Mark pre-annotation as incorrect
+                clickedAnnotation.incorrect = true;
+                // Redraw all annotations to reflect changes
+                redrawAnnotations();
+            }
+        } else {
+            // Add a new annotation if not clicked on an existing one
+            var regionId = annotations.length + 1;
+            annotations.push({
+                id: regionId,
+                x: x,
+                y: y,
+                type: 'new', // Marking this as a new annotation
+                incorrect: false
+            });
+            drawMarker(x, y, regionId, '#00FF00');
+        }
+    }
+});
+canvas.addEventListener('mousemove', function(event) {
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / rect.width;
+        var scaleY = canvas.height / rect.height;
+        var x = (event.clientX - rect.left) * scaleX;
+        var y = (event.clientY - rect.top) * scaleY;
+        var hoverAnnotation = isClickNearAnnotation(x, y);
+
+        redrawAnnotations(); // Redraw annotations to clear any previous highlights
+
+        if (hoverAnnotation && hoverAnnotation.type === 'pre') {
+            drawMarker(hoverAnnotation.x, hoverAnnotation.y, hoverAnnotation.id, 'yellow', true); // Add highlight effect
+        }
+    });
+
+function redrawAnnotations() {
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+annotations.forEach(function(annotation) {
+    var color = annotation.incorrect ? 'red' : (annotation.type === 'pre' ? 'yellow' : '#00FF00');
+    drawMarker(annotation.x, annotation.y, annotation.id, color);
+});
+boxes.forEach(function(box) {
+            drawBox(box.x, box.y, box.width, box.height);
+        });
+}
+function drawBox(x, y, width, height) {
+        ctx.beginPath();
+        ctx.rect(x, y, width, height);
+        ctx.strokeStyle = 'blue';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+function isClickNearAnnotation(x, y) {
+console.log(annotations)
+const clickRadius = 20; // Adjust this value as needed to increase or decrease the sensitivity
+console.log('Click coordinates:', x, y);
+for (let annotation of annotations) {
+    console.log('Annotation coordinates:', annotation.x, annotation.y);
+    var distance = Math.sqrt(Math.pow(annotation.x - x, 2) + Math.pow(annotation.y - y, 2));
+    if (distance <= clickRadius) {
+        console.log('Clicked near annotation:', annotation);
+        return annotation;
+    }
+}
+console.log('No annotation clicked');
+return null;
+}
+    function markAsIncorrect(annotation) {
+        annotation.incorrect = true;
+        drawMarker(annotation.x, annotation.y, annotation.id, 'red');
+    }
+
+    function drawMarker(x, y, id, color, highlight = false) {
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.arc(x, y, highlight ? 5 : 3.5, 0, Math.PI * 2); // Increase radius if highlighted
+        ctx.fillStyle = color;
+        ctx.fill();
+        if (highlight) {
+            ctx.strokeStyle = 'blue'; // Highlight color
+            ctx.lineWidth = 2; // Highlight border width
+        } else {
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 0.5;
+        }
+        ctx.stroke();
+        ctx.closePath();
+        ctx.globalAlpha = 1.0;
+    }
+
+    document.getElementById('saveAnnotationsButton').addEventListener('click', function() {
+        
+      var validAnnotations = annotations.filter(function(ann) { return !ann.incorrect; });
+        var json = validAnnotations.map(function(annotation) {
+            return {
+                region_shape_attributes: JSON.stringify({ name: "point", cx: annotation.x, cy: annotation.y })
+                // Include other properties as needed
+            };
+        });
+
+        var canvasDataUrl = canvas.toDataURL('image/png');
+        var blob = dataURLtoBlob(canvasDataUrl); // Convert it to a Blob
+
+        var formData = new FormData();
+        formData.append('annotations', JSON.stringify(json));
+        formData.append('file_id', fileId);
+        formData.append('image', blob);
+        formData.append('boxes', JSON.stringify(boxes));
+
+        fetch('/save_annotations/' + fileId, {
+            method: 'POST',
+            body: formData // Send the form data
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            console.log('Success:', data);
+            window.location.href = '/';
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+        });
+    });
+    function dataURLtoBlob(dataurl) {
+        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while(n--){
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], {type:mime});
+    }
+  </script>
+  <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/swiper/swiper-bundle.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/glightbox/js/glightbox.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/aos/aos.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/php-email-form/validate.js') }}"></script>
+
+
+  <!-- Template Main JS File -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var originalImage = document.getElementById('originalImage');
+        var densityMap = document.getElementById('densityMap');
+
+        originalImage.onload = function() {
+            console.log("Original Image Width:", this.width);
+            console.log("Original Image Height:", this.height);
+        };
+
+        densityMap.onload = function() {
+            console.log("Density Map Width:", this.width);
+            console.log("Density Map Height:", this.height);
+        };
+    });
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,1 @@
+Add the checkpoint here and rename it to original.pth.

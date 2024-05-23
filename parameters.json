@@ -1,0 +1,14 @@
+[
+    {
+        "path_file": "orignal.pth",
+        "MAE": 0.1805937599375936
+    },
+    {
+        "path_file": "checkpoint__finetuning_401_4.pth",
+        "MAE": 0.1764674945129029
+    },
+    {
+        "path_file": "checkpoint__finetuning_401_3.pth",
+        "MAE": 0.1766367413533356
+    }
+]
