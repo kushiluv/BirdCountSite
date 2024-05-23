@@ -61,7 +61,7 @@ def get_args():
     args.im_dir = 'model_files/finetune_data_mongo/Images'
     # args.gt_dir = 'C:/Users/abhin/OneDrive/Desktop/ft/finetune/data/Birds_Dataset/GT'
     args.output_dir = 'model_files/pth'
-    args.resume = 'model_files/pth/orignal.pth'  # Or the appropriate checkpoint file
+    args.resume = 'model_files/pth/original.pth'  # Or the appropriate checkpoint file
 
     # Logging and device
     args.log_dir = './logs/pre_4_dir'

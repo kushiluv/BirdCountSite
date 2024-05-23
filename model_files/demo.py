@@ -330,7 +330,7 @@ model = models_mae_cross.__dict__['mae_vit_base_patch16'](norm_pix_loss='store_t
 model.to(device)
 model_without_ddp = model
 
-checkpoint = torch.load('model_files/pth/orignal.pth', map_location='cuda')
+checkpoint = torch.load('model_files/pth/original.pth', map_location='cuda')
 model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
 # print("Resume checkpoint %s" % './checkpoint-400.pth')
 
