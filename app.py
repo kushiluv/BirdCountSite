@@ -6,7 +6,6 @@ from flask import send_file
 from werkzeug.utils import secure_filename
 from bson.objectid import ObjectId
 from flask import make_response,abort
-# Import your demo script
 import model_files.demo as demo
 import model_files.FSC_finetune_cross as FSC_finetune_cross
 from pymongo import MongoClient
