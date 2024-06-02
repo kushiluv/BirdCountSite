@@ -11,7 +11,7 @@ To run the app, perform the following steps:
 1. Clone the repository.
 2. Download the model's weights from [this link](https://drive.google.com/file/d/1CzYyiYqLshMdqJ9ZPFJyIzXBa7uFUIYZ/view) and save it in `model_files/pth`.
 3. Rename the `.pth` file as `original.pth`.
-4. Download the DB from [this link](https://example.com/db) and save it in `model_files/eval_db`.
+4. Download the DB from [this link](https://drive.google.com/file/d/14BAPW6Ah-d-8Gr0bFE0DZ_6QgW-GSP1t/view?usp=sharing) and save it in `model_files/eval_db`.
 5. Ensure you're using Python v3.9 and install the dependencies by running the command: `pip install -r requirements.txt`.
 6. Run the site using the command: `python app.py`.
 
